@@ -1,0 +1,9 @@
+ecspp
+C++ Entity Component System utilizing boost flat_maps and a header only implementation
+
+ECS implementation I'm using with SFML for a game I'm developing. Not done yet and will update
+with usage info when done. Also doxygen documentation should follow shortly. 
+NOTE:
+This is for my own self study and will change drastically until I know wth I'm doing :)
+
+checkout entityx, anax, kult, ecsos for other implementations
