@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef ECS_HPP_
-#define ECS_HPP_
+#ifndef ECS_OLD_HPP_
+#define ECS_OLD_HPP_
 
 //#include "typeMap.hpp"
 #include "flat_map.hpp"
@@ -42,7 +42,7 @@
  * object. The "Systems" object will contain all of the systems in a vector.
  *
  */
-namespace ecs{
+namespace ecs_old{
 	/*!
 	 * \brief max expected number of entities and components to pass into container.reserve()
 	 */
@@ -75,19 +75,7 @@ namespace ecs{
 	typedef std::pair<std::string, std::type_index> typeName;
 	// System Definitions
 
-	/*!
-	 * \class Entities
-	 * \brief contains all entities and manages add, remove, create, destroy functionalities
-	 * Also, is responsible for adding components to the component mask of entities
-	 */
-	class Entities{
-	public:
-		Entities();
-		~Entities();
-	private:
-		vectorOfPairs<const EntityId, ComponentMask> entities; /*! holds all entities (id and mask) */
-		std::queue<int> availableEntityIndices; /*! "destroyed" entity indices to be reused */
-	};
+
 	/*!\class Components
 	 * \brief contains and provides functionality for adding component types and maps
 	 */
@@ -101,7 +89,12 @@ namespace ecs{
 		 */
 		template <class Component>
 		flatMap<EntityId, Component>* createComponentMap(Component& componentStruct){
-
+			Component C;
+			addType(typeid(C).name(), componentStruct);
+			flatMap<EntityId, Component> newComponentMap;
+			flatMap<EntityId, Component>* ptr = &newComponentMap;
+			addComponentMapPtr(ptr);
+			return newComponentMap;
 		}
 
 		template <class Component>
@@ -133,9 +126,25 @@ namespace ecs{
 	private:
 		// index of component = position of bit for that component (Entity.componentMask)
 		vectorOfPairs<std::string, std::type_index> typeNames;
-		vectorOfPairs<std::string, boost::any> types;
+		vectorOfPairs<std::type_index, boost::any> types;
 		flatMap<std::type_index, void*> componentMapPtrs; //
 
+		template <class Component>
+		void createComponent(EntityId entityId, std::string componentName){
+			std::type_index cType;
+			boost::any c;
+			for(auto typeName : typeNames){
+				if(typeName.first == componentName){
+					cType = typeName.second;
+				}
+			}
+			for(auto type : types){
+				if(type.first == cType ){
+					c = type.second;
+				}
+			}
+			//flatMap<EntityId, c>* cMap = getComponentMap();
+		}
 		/*!\fn addType
 		 * adds type_index and the name of a component to typeNames
 		 * overloads handle only passing in a struct and .name() is used to infer the name
@@ -187,6 +196,23 @@ namespace ecs{
 		}
 	}; // Components Class
 
+	/*!
+	 * \class Entities
+	 * \brief contains all entities and manages add, remove, create, destroy functionalities
+	 * Also, is responsible for adding components to the component mask of entities
+	 */
+	class Entities{
+	public:
+		Entities(Components c){
+			c = components;
+		};
+		~Entities();
+	private:
+		Components components;
+		vectorOfPairs<const EntityId, ComponentMask> entities; /*! holds all entities (id and mask) */
+		std::queue<int> availableEntityIndices; /*! "destroyed" entity indices to be reused */
+	};
+
 	/*!\class BaseSystem
 	 * \brief class that all systems should inherit from
 	 */
@@ -228,13 +254,13 @@ namespace ecs{
 			}
 		}
 
-		void update(){
+		void updateAll(){
 			for(auto const& system : systems){
 				system->update();
 			}
 		}
 
-		void removeAll(){
+		void destroyAll(){
 			for(auto const& system : systems){
 				system->destroy();
 			}
@@ -253,9 +279,23 @@ namespace ecs{
 		std::vector<std::unique_ptr<BaseSystem>> systems;
 
 	}; // Systems class
-
+	void componentMapTest(){
+		struct TestComponent{
+			std::string name = "test name";
+		};
+		TestComponent test;
+		ecs::EntityId entity = 1;
+		ecs::Components components;
+		ecs::flatMap<ecs::EntityId, TestComponent> testMap = components.createComponentMap("test",test);
+		testMap.emplace(entity, test);
+		TestComponent test2 = testMap.at(entity); //testMap[entity]
+		std::string testName = test2.name;
+		cout << testName << endl;
+		testMap* pTestMap2;
+		pTestMap2 = components.getComponentMap();
+	}
 
 
 }// ecs namespace
 
-#endif /* ECS_HPP_ */
+#endif /* ECS_OLD_HPP_ */
