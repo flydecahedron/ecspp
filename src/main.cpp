@@ -1,10 +1,7 @@
-//============================================================================
-// Name        : ecs.cpp
-// Author      : Eric Schmiedeberg
-// Version     :
-// Copyright   : Copyright 2016
-// Description : Hello World in C++, Ansi-style
-//============================================================================
+/*! \file main.cpp
+ * \brief entry point for the program
+ *
+ */
 
 #include <iostream>
 
@@ -16,6 +13,5 @@ int main() {
 
 	boost::container::flat_map<int, int> map;
 	map.reserve(20);
-	cout << "FUCK YOU" << endl; // prints FUCK YOU
 	return 0;
 }

@@ -1,37 +1,54 @@
-/*
- * Component.hpp
+/*! \mainpage ecspp Index page
+ * \section intro_sec Introduction
+ * This will be the intro eventually probs
+ * \section install_sec Installation
+ * \subsection step1 Step 1: I'm a masochist and use Eclipse CDT
+ * eff me right?
+ * \subsection step2 Step 2: It's really not that bad
+ * says no one on the internet
+ * \subsectin step3 Step 3: Coming out
+ * okay I'm actually enjoying it and hate visual studio D:
+ */
+
+/*! \file ecs.hpp
  *
- *  Created on: Nov 7, 2016
- *      Author: eroc
  */
 
 #ifndef ECS_HPP_
 #define ECS_HPP_
 
+//#include "typeMap.hpp"
 #include "flat_map.hpp"
 #include <vector>
 #include <bitset> // component mask
 #include <queue> // available entity ids
 #include <memory> //unique_ptr for vector<systems>
+#include <typeinfo> //for component types vector and map of component ptrs
+#include <typeindex>
 
-/*	TODO
- * Component-> add, remove, addType
- * System-> add, remove
- */
-
-/**\namespace ecs
+/*!\namespace ecs
  * \brief entity component system implementation where entities, components, and systems
  * are held in objects of those names respectively.
  *
+ * Entities are a combination of a uuid and their component mask which is std::bitset. A component's
+ * "bit" is determined by its index in the component type vector.
+ *
+ * boost flat_map is used for each different component type for contiguous memory and fast
+ * iteration. Components are expected to hold most/all of what a system will need to update.
+ *
+ * Systems need to be derived from BaseSystem and define update, init, and destroy functions (messaging
+ * functions may be added later). They will be updated in the order that they are added to the "Systems"
+ * object. The "Systems" object will contain all of the systems in a vector.
+ *
  */
 namespace ecs{
-	/**
+	/*!
 	 * \brief max expected number of entities and components to pass into container.reserve()
 	 */
 	const int maxEntities = 1000; // amount of entities to reserve for vector<Entity>
 	const int maxComponentTypes = 64;
 
-	/**
+	/*!
 	 * \brief flatMap is used for each component type and acquired from boost::container
 	 * It is a contiguous ordered map
 	 * \tparam Key entity id
@@ -40,7 +57,7 @@ namespace ecs{
 	template <typename Key, class T>
 	using flatMap = boost::container::flat_map<Key, T>;
 
-	/**
+	/*!
 	 * \brief vectorOfPairs is used to hold entity ids and their component masks
 	 * \tparam Key entity id
 	 * \tparm T component mask
@@ -58,7 +75,7 @@ namespace ecs{
 
 	// System Definitions
 
-	/**
+	/*!
 	 * \class Entities
 	 * \brief contains all entities and manages add, remove, create, destroy functionalities
 	 * Also, is responsible for adding components to the component mask of entities
@@ -68,8 +85,8 @@ namespace ecs{
 		Entities();
 		~Entities();
 	private:
-		vectorOfPairs<const EntityId, ComponentMask> entities; /** holds all entities (id and mask) */
-		std::queue<int> availableEntityIndices; /** "destroyed" entity indices to be reused */
+		vectorOfPairs<const EntityId, ComponentMask> entities; /*! holds all entities (id and mask) */
+		std::queue<int> availableEntityIndices; /*! "destroyed" entity indices to be reused */
 	};
 
 	class Components{
@@ -77,20 +94,33 @@ namespace ecs{
 		Components();
 		~Components();
 
-
-
 		template <class T>
-		void add(const std::string& componentName, T& componentStruct){
-
+		void addType(const std::string& componentName, T& componentStruct){
+			T t;
+			typeNames.emplace_back(std::make_pair(componentName, std::type_index(typeid(t))));
 		}
 
+		template <class Component>
+		void addComponentMap(flatMap<EntityId, Component>* map){
+			Component C;
+			componentMapPtrs.insert(typeid(C).hash_code(), map);
+		}
+
+		template <class Component>
+		flatMap<EntityId, Component>* getComponentMap(){
+			Component C;
+			auto it = componentMapPtrs.find(std::type_index(typeid(C)));
+
+			return static_cast<flatMap<EntityId, Component>*>(it);
+		}
 		template <class T>
 		void remove(T component){
 
 		}
 	private:
 		// index of component = position of bit for that component (Entity.componentMask)
-
+		vectorOfPairs<std::string, std::type_index> typeNames;
+		flatMap<std::type_index, void*> componentMapPtrs; //
 	}; // Components Class
 
 	class BaseSystem{
@@ -112,7 +142,7 @@ namespace ecs{
 		void destroy(){};
 	};
 
-	/* Systems
+	/**\class Systems
 	 *
 	 */
 	class Systems{
