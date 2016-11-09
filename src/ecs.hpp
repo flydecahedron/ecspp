@@ -19,6 +19,7 @@
 
 //#include "typeMap.hpp"
 #include "flat_map.hpp"
+#include "any.hpp"
 #include <vector>
 #include <bitset> // component mask
 #include <queue> // available entity ids
@@ -70,9 +71,8 @@ namespace ecs{
 	typedef std::bitset<maxComponentTypes> ComponentMask;
 	typedef std::pair<EntityId, ComponentMask> entity;
 
-
 	// Component Definitions
-
+	typedef std::pair<std::string, std::type_index> typeName;
 	// System Definitions
 
 	/*!
@@ -88,41 +88,108 @@ namespace ecs{
 		vectorOfPairs<const EntityId, ComponentMask> entities; /*! holds all entities (id and mask) */
 		std::queue<int> availableEntityIndices; /*! "destroyed" entity indices to be reused */
 	};
-
+	/*!\class Components
+	 * \brief contains and provides functionality for adding component types and maps
+	 */
 	class Components{
 	public:
-		Components();
-		~Components();
+		//Components();
+		//~Components();
 
-		template <class T>
-		void addType(const std::string& componentName, T& componentStruct){
-			T t;
-			typeNames.emplace_back(std::make_pair(componentName, std::type_index(typeid(t))));
+		/*!\fn createComponentMap
+		 * \brief inits and returns a componentMap for the type passed in
+		 */
+		template <class Component>
+		flatMap<EntityId, Component>* createComponentMap(Component& componentStruct){
+
 		}
 
 		template <class Component>
-		void addComponentMap(flatMap<EntityId, Component>* map){
-			Component C;
-			componentMapPtrs.insert(typeid(C).hash_code(), map);
+		flatMap<EntityId, Component> createComponentMap(std::string componentName, Component& componentStruct){
+			addType(componentName, componentStruct);
+			flatMap<EntityId, Component> newComponentMap;
+			flatMap<EntityId, Component>* ptr = &newComponentMap;
+			addComponentMapPtr(ptr);
+			return newComponentMap;
 		}
-
+		/*!\fn getComponentMap
+		 * \brief set the desired component map type equal to this function
+		 * example: textureMap* tm = getComponentMap()
+		 */
 		template <class Component>
 		flatMap<EntityId, Component>* getComponentMap(){
 			Component C;
-			auto it = componentMapPtrs.find(std::type_index(typeid(C)));
-
-			return static_cast<flatMap<EntityId, Component>*>(it);
+			auto ptr = componentMapPtrs.find(std::type_index(typeid(C)))->second;
+			return static_cast<flatMap<EntityId, Component>*>(ptr);
 		}
-		template <class T>
-		void remove(T component){
-
+		/*!\fn deleteComponentMap
+		 * \brief erases entry from componentMapPtrs and clears the passed in map
+		 */
+		template <class Component>
+		void deleteComponentMap(flatMap<EntityId, Component>* map){
+			removeComponentMapPtr(map);
+			map->clear();
 		}
 	private:
 		// index of component = position of bit for that component (Entity.componentMask)
 		vectorOfPairs<std::string, std::type_index> typeNames;
+		vectorOfPairs<std::string, boost::any> types;
 		flatMap<std::type_index, void*> componentMapPtrs; //
+
+		/*!\fn addType
+		 * adds type_index and the name of a component to typeNames
+		 * overloads handle only passing in a struct and .name() is used to infer the name
+		 */
+		template <class T>
+		void addType(const std::string& componentName, T& componentStruct){
+			T t;
+			for(typeName tn : typeNames){
+				assert(tn.second.hash_code() != std::type_index(typeid(t)).hash_code());
+			}
+			typeNames.emplace_back(std::make_pair(componentName, std::type_index(typeid(t))));
+		}
+
+		template <class T>
+		void addType(T& componentStruct){
+			T t;
+			for(typeName tn : typeNames){
+				assert(tn.first() != std::type_index(typeid(t)));
+			}
+			typeNames.emplace_back(std::make_pair(std::type_index(typeid(t).name()), std::type_index(typeid(t))));
+		}
+
+		template <typename T>
+		std::type_index resolveType(std::string name){
+			for(typeName tn : typeNames){
+				if(tn.second() == name){
+					return tn.second();
+				}
+			}
+			return nullptr;
+		}
+		/*!\fn addComponentMap
+		 * \brief use if a componentMap is already created, adds a ptr and typeinfo
+		 */
+		template <class Component>
+		void addComponentMapPtr(flatMap<EntityId, Component>* map){
+			Component C;
+			componentMapPtrs.emplace(std::type_index(typeid(C)), map);
+		}
+
+		/*!\fn removeComponentMapPtr
+		 * \brief erases passed in ptr from componentMapPtrs
+		 */
+		template <class Component>
+		void removeComponentMapPtr(flatMap<EntityId, Component>* map){
+			Component C;
+			auto it = componentMapPtrs.find(std::type_index(typeid(C)));
+			componentMapPtrs.erase(it);
+		}
 	}; // Components Class
 
+	/*!\class BaseSystem
+	 * \brief class that all systems should inherit from
+	 */
 	class BaseSystem{
 	public:
 		BaseSystem(){};

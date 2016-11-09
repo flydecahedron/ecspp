@@ -38,8 +38,8 @@ public:
 		return (std::vector<T>*)(pointers[typeid(t).hash_code()]);
 	}
 
-	template<class T>
-	void addFlatMapPtr(flatMap<)
+	//template<class T>
+	//void addFlatMapPtr(flatMap<)
 private:
 	flat_map<unsigned long, void*> pointers;
 };
