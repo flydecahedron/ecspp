@@ -108,14 +108,15 @@ public:
 	 * \brief creates a new CMap for the passed in type
 	 */
 	template<class Component>
-	void add(std::string& CName, Component& CStruct){
+	void add(std::string& CName, Component CStruct){
 		for(auto type : types){
 			static_assert(type.first != CName, "Component names must be unique");
 			static_assert(type.second != std::type_index(typeid(CStruct)), "Component types must be unique");
 		}
 		types.emplace_back(CName, std::type_index(typeid(CStruct)));
 		flatMap< Entity, Component > CMap;
-		CMaps.emplace(CName, std::make_shared<CMap>());
+		std::shared_ptr<CMap>() ;
+		//CMaps.emplace(CName, std::make_shared<CMap>());
 	}
 	/*!/fn get
 	 *\brief NOTE: MUST CAST TO APPROPRIATE TYPE! returns a shared_ptr of the passed in type or name
@@ -125,16 +126,15 @@ public:
 	}
 	//get overload
 	std::shared_ptr<flatMap< Entity, IComponent>> get(std::type_index CType){
-			std::string CName;
-			for(auto type: types){
-				if(type.second == CType){
-					CName = type.first;
-				}
+		std::string CName;
+		for(auto type: types){
+			if(type.second == CType){
+				CName = type.first;
 			}
-			return CMaps.at(CName);
 		}
+		return CMaps.at(CName);
+	}
 
-private:
 	vectorOfPairs<std::string, std::type_index> types; //!index of component type is its 'bit' in bitmask
 	flatMap< std::string, std::shared_ptr< flatMap< Entity, IComponent> > > CMaps; //! CMap shared_ptrs
 }; //Components
@@ -144,6 +144,10 @@ private:
  */
 class Entities{
 public:
+	Entities(Components& c){
+		components = c;
+	}
+
 	Entity create(){
 		Entity entity;
 		if(deletedEntities.empty()){
@@ -172,6 +176,7 @@ private:
 	std::queue<Entity> deletedEntities;
 	std::queue<int> availableIndices;
 	Entity entityCount = 0;
+	Components components;
 };
 
 /*!\class ISystem
