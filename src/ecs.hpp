@@ -25,6 +25,8 @@
 #include <memory> //shared_ptr for CMaps
 #include <cassert> // static_assert component types
 #include <algorithm>//find_if for entities
+#include <cassert>
+#include <exception>
 /*!\namespace ecs
  * \brief entity component system implementation where entities, components, and systems
  * are held in objects of those names respectively.
@@ -92,12 +94,12 @@ typedef std::pair<Entity, ComponentMask> EntityData;
  * \brief base POD struct for all component types
  */
 struct IComponent{
-	virtual ~IComponent();
+	virtual ~IComponent(){};
 };
 
 //! Component Defines
 typedef std::pair<std::string, std::type_index> typeName;
-
+//typedef flatMap< Entity, IComponent > ICMap;
 
 /*!\class Components
  * \brief contains all component containers and functionality to add and remove them
@@ -108,16 +110,18 @@ public:
 	 * \brief creates a new CMap for the passed in type
 	 */
 	template<class Component>
-	void add(std::string& CName, Component CStruct){
+	flatMap< Entity, Component> newType(const std::string& CName, Component& CStruct){
 		for(auto type : types){
-			static_assert(type.first != CName, "Component names must be unique");
-			static_assert(type.second != std::type_index(typeid(CStruct)), "Component types must be unique");
+			assert(type.first != CName);
+			assert(type.second != std::type_index(typeid(CStruct)));
 		}
 		types.emplace_back(CName, std::type_index(typeid(CStruct)));
-		flatMap< Entity, Component > CMap;
-		std::shared_ptr<CMap>() ;
-		//CMaps.emplace(CName, std::make_shared<CMap>());
+		flatMap< Entity, Component > CMap = flatMap< Entity, Component >();
+		std::shared_ptr< flatMap<Entity, IComponent> > CMapPtr;
+		CMaps.emplace(CName, CMapPtr);
+		return CMap;
 	}
+
 	/*!/fn get
 	 *\brief NOTE: MUST CAST TO APPROPRIATE TYPE! returns a shared_ptr of the passed in type or name
 	 */
