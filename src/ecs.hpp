@@ -1,20 +1,30 @@
-/**\mainpage ecspp
- * ecs.hpp
+/*! \mainpage ecspp Index page
+ * \section intro_sec Introduction
+ * This will be the intro eventually probs
+ * \section install_sec Installation
+ * \subsection step1 Step 1: I'm a masochist and use Eclipse CDT
+ * eff me right?
+ * \subsection step2 Step 2: It's really not that bad
+ * says no one on the internet
+ * \subsectin step3 Step 3: Coming out
+ * okay I'm actually enjoying it and hate visual studio D:
+ */
+
+/*! \file ecs.hpp
  *
- *  Created on: Nov 9, 2016
- *      Author: eroc
  */
 
 #ifndef ECS_HPP_
 #define ECS_HPP_
-#include "flat_map.hpp"
+#include "flat_map.hpp" // CMaps and systems
 #include <vector>
-#include <unordered_map>
-#include <typeindex>
-#include <bitset>
-#include <functional>
-#include <memory>
-#include <cassert>
+#include <queue> // available entity ids and idices
+#include <typeindex> // to store component types
+#include <bitset> // component bitmasking
+#include <functional> //make_shared for creating new CMap
+#include <memory> //shared_ptr for CMaps
+#include <cassert> // static_assert component types
+#include <algorithm>//find_if for entities
 /*!\namespace ecs
  * \brief entity component system implementation where entities, components, and systems
  * are held in objects of those names respectively.
@@ -55,6 +65,21 @@ using flatMap = boost::container::flat_map<Key, T>;
  */
 template <typename Key, class T>
 using vectorOfPairs = std::vector<std::pair<Key, T>>;
+/*!\class CompareFirst
+ * \brief unary predicate returns true if pair.first equals the passed in value.
+ * Meant to be used with find_if and vectorOfPairs.
+ * http://stackoverflow.com/questions/12008059/find-if-and-stdpair-but-just-one-element
+ */
+template <typename K, typename T>
+struct CompareFirst
+{
+  CompareFirst(K key) : key_(key) {}
+  bool operator()(const std::pair<K,T>& element) const {
+    return key_ == element.first;
+  }
+  private:
+    K key_;
+};
 
 //! Entity Defines
 typedef std::uint32_t Entity;
@@ -62,20 +87,6 @@ typedef std::bitset<maxComponentTypes> ComponentMask;
 typedef std::pair<Entity, ComponentMask> EntityData;
 
 //! System Defines
-
-
-/*!\class Entities
- *
- */
-class Entities{
-public:
-	Entity create(){
-		Entity e;
-		return e;
-	}
-private:
-	vectorOfPairs<Entity, ComponentMask> entities;
-};
 
 /*!\class IComponent
  * \brief base POD struct for all component types
@@ -93,6 +104,9 @@ typedef std::pair<std::string, std::type_index> typeName;
  */
 class Components{
 public:
+	/*!\fn add
+	 * \brief creates a new CMap for the passed in type
+	 */
 	template<class Component>
 	void add(std::string& CName, Component& CStruct){
 		for(auto type : types){
@@ -101,13 +115,64 @@ public:
 		}
 		types.emplace_back(CName, std::type_index(typeid(CStruct)));
 		flatMap< Entity, Component > CMap;
-		CMaps.emplace(CName, CMap);
+		CMaps.emplace(CName, std::make_shared<CMap>());
 	}
+	/*!/fn get
+	 *\brief NOTE: MUST CAST TO APPROPRIATE TYPE! returns a shared_ptr of the passed in type or name
+	 */
+	std::shared_ptr<flatMap< Entity, IComponent>> get(std::string CName){
+		return CMaps.at(CName);
+	}
+	//get overload
+	std::shared_ptr<flatMap< Entity, IComponent>> get(std::type_index CType){
+			std::string CName;
+			for(auto type: types){
+				if(type.second == CType){
+					CName = type.first;
+				}
+			}
+			return CMaps.at(CName);
+		}
 
 private:
 	vectorOfPairs<std::string, std::type_index> types; //!index of component type is its 'bit' in bitmask
 	flatMap< std::string, std::shared_ptr< flatMap< Entity, IComponent> > > CMaps; //! CMap shared_ptrs
 }; //Components
+
+/*!\class Entities
+ *
+ */
+class Entities{
+public:
+	Entity create(){
+		Entity entity;
+		if(deletedEntities.empty()){
+			entity = entityCount++;
+		}
+		else{
+			entity = deletedEntities.front();
+			deletedEntities.pop();
+		}
+		ComponentMask CMask;
+		CMask.set(0);
+		entities.emplace_back(entity, CMask);
+		return entity;
+	}
+	void remove(Entity entity){
+		auto it = std::find_if(entities.begin(), entities.end(), CompareFirst<Entity,ComponentMask>(entity));
+		int index = it - entities.begin();
+		availableIndices.push(index);
+		deletedEntities.push(entity);
+		/** TODO
+		 * use ComponentMask to remove related components
+		 */
+	}
+private:
+	vectorOfPairs<Entity, ComponentMask> entities;
+	std::queue<Entity> deletedEntities;
+	std::queue<int> availableIndices;
+	Entity entityCount = 0;
+};
 
 /*!\class ISystem
  * \brief base class for all system types
