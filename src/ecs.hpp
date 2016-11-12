@@ -114,7 +114,7 @@ public:
 	ComponentMask bitMask(std::initializer_list<std::string> componentNames){
 		ComponentMask CMask;
 		for(auto it : componentNames){
-			unsigned short int bit = types.
+			unsigned short int bit = types[it];
 			CMask.set(bit , true);
 		}
 		return CMask;
