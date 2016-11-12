@@ -26,6 +26,8 @@
 #include <algorithm>//find_if for entities
 #include <cassert>
 #include <exception>
+#include <unordered_map> //Comonent Mask map
+#include <initializer_list>
 /*!\namespace ecs
  * \brief entity component system implementation where entities, components, and systems
  * are held in objects of those names respectively.
@@ -92,26 +94,40 @@ struct CompareSecond
  */
 class ComponentManager{
 public:
+	/*!\fn add
+	 * places a new void ptr to types map for the passed in component data structure. Name is the key
+	 */
 	template <class T>
 	void add(const std::string& componentName, T& dataStruct){
 		T * ptr = dataStruct;
+		types[componentName] = bitCounter;
+		++bitCounter;
 		pointers.emplace_back(componentName, ptr);
 	}
-
+	/*!\fn get
+	 * returns void ptr to component data structure related to the passed in name
+	 */
 	void* get(const std::string& componentName){
 		auto it = std::find_if(pointers.begin(), pointers.end(), CompareFirst<std::string,void*>(componentName));
 		return it->second;
 	}
+	ComponentMask bitMask(std::initializer_list<std::string> componentNames){
+		ComponentMask CMask;
+		for(auto it : componentNames){
+			unsigned short int bit = types.
+			CMask.set(bit , true);
+		}
+		return CMask;
+	}
 private:
-	vectorOfPairs<const std::string, void*> pointers;
+	vectorOfPairs<std::string, void*> pointers;
+	std::unordered_map<std::string, unsigned short int> types;
+	unsigned short int bitCounter = 1;
 
 };
 /*!\class Entities
- * \brief contains all entities and manages add, remove, create, destroy functionalities
+ * Contains all entities and manages add, remove, create, destroy functionalities.
  * Also, is responsible for adding components to the component mask of entities
- */
-/*!\class Entities
- *
  */
 class Entities{
 public:
@@ -122,7 +138,8 @@ public:
 	Entity create(){
 		Entity entity;
 		if(deletedEntities.empty()){
-			entity = entityCount++;
+			entity = entityCount;
+			++entityCount;
 		}
 		else{
 			entity = deletedEntities.front();
@@ -194,15 +211,6 @@ public:
 			system->destroy();
 		}
 		systems.clear();
-	}
-	void test(){
-		/*
-	}
-		ecs::TestSystem testS;
-		systems.push_back(testS);
-		for(BaseSystem test : systems){
-			test.update();
-		}*/
 	}
 private:
 	std::vector<std::unique_ptr<BaseSystem>> systems;
