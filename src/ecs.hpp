@@ -13,10 +13,9 @@
 /*! \file ecs.hpp
  *
  */
-
 #ifndef ECS_HPP_
 #define ECS_HPP_
-#include "flat_map.hpp" // CMaps and systems
+
 #include <vector>
 #include <queue> // available entity ids and idices
 #include <typeindex> // to store component types
@@ -45,21 +44,12 @@
  */
 namespace ecs{
 
-/*!
- * \brief max expected number of entities and components to pass into container.reserve()
- */
+//max expected number of entities and components to pass into container.reserve()
 const int maxEntities = 1000; // amount of entities to reserve for vector<Entity>
 const int maxComponentTypes = 64;
-
-/*!
- * \brief flatMap is used for each component type and acquired from boost::container
- * It is a contiguous ordered map
- * \tparam Key entity id
- * \tparam T component associated with the key (entity id)
- */
-template <typename Key, class T>
-using flatMap = boost::container::flat_map<Key, T>;
-
+typedef unsigned int Entity;
+typedef std::bitset<maxComponentTypes> ComponentMask;
+typedef std::pair<Entity, ComponentMask> EntityData;
 /*!
  * \brief vectorOfPairs is used to hold entity ids and their component masks
  * \tparam Key entity id
@@ -75,81 +65,58 @@ using vectorOfPairs = std::vector<std::pair<Key, T>>;
 template <typename K, typename T>
 struct CompareFirst
 {
-  CompareFirst(K key) : key_(key) {}
+  CompareFirst(K key) : m_key(key) {}
   bool operator()(const std::pair<K,T>& element) const {
-    return key_ == element.first;
+    return m_key == element.first;
   }
   private:
-    K key_;
+    K m_key;
 };
-
-//! Entity Defines
-typedef std::uint32_t Entity;
-typedef std::bitset<maxComponentTypes> ComponentMask;
-typedef std::pair<Entity, ComponentMask> EntityData;
-
-//! System Defines
-
-/*!\class IComponent
- * \brief base POD struct for all component types
+/*!\class CompareSecond
+ * \brief unary predicate returns true if pair.first equals the passed in value.
+ * Meant to be used with find_if and vectorOfPairs.
+ * http://stackoverflow.com/questions/12008059/find-if-and-stdpair-but-just-one-element
  */
-struct IComponent{
-	virtual ~IComponent(){};
+template <typename K, typename T>
+struct CompareSecond
+{
+  CompareSecond(T t) : m_t(t) {}
+  bool operator()(const std::pair<K,T>& element) const {
+    return m_t == element.second;
+  }
+  private:
+    T m_t;
 };
-
-//! Component Defines
-typedef std::pair<std::string, std::type_index> typeName;
-//typedef flatMap< Entity, IComponent > ICMap;
-
-/*!\class Components
- * \brief contains all component containers and functionality to add and remove them
+/*!\class ComponentManager
+ *
  */
-class Components{
+class ComponentManager{
 public:
-	/*!\fn add
-	 * \brief creates a new CMap for the passed in type
-	 */
-	template<class Component>
-	flatMap< Entity, Component> newType(const std::string& CName, Component& CStruct){
-		for(auto type : types){
-			assert(type.first != CName);
-			assert(type.second != std::type_index(typeid(CStruct)));
-		}
-		types.emplace_back(CName, std::type_index(typeid(CStruct)));
-		flatMap< Entity, Component > CMap = flatMap< Entity, Component >();
-		std::shared_ptr< flatMap<Entity, IComponent> > CMapPtr;
-		CMaps.emplace(CName, CMapPtr);
-		return CMap;
+	template <class T>
+	void add(const std::string& componentName, T& dataStruct){
+		T * ptr = dataStruct;
+		pointers.emplace_back(componentName, ptr);
 	}
 
-	/*!/fn get
-	 *\brief NOTE: MUST CAST TO APPROPRIATE TYPE! returns a shared_ptr of the passed in type or name
-	 */
-	std::shared_ptr<flatMap< Entity, IComponent>> get(std::string CName){
-		return CMaps.at(CName);
+	void* get(const std::string& componentName){
+		auto it = std::find_if(pointers.begin(), pointers.end(), CompareFirst<std::string,void*>(componentName));
+		return it->second;
 	}
-	//get overload
-	std::shared_ptr<flatMap< Entity, IComponent>> get(std::type_index CType){
-		std::string CName;
-		for(auto type: types){
-			if(type.second == CType){
-				CName = type.first;
-			}
-		}
-		return CMaps.at(CName);
-	}
+private:
+	vectorOfPairs<const std::string, void*> pointers;
 
-	vectorOfPairs<std::string, std::type_index> types; //!index of component type is its 'bit' in bitmask
-	flatMap< std::string, std::shared_ptr< flatMap< Entity, IComponent> > > CMaps; //! CMap shared_ptrs
-}; //Components
-
+};
+/*!\class Entities
+ * \brief contains all entities and manages add, remove, create, destroy functionalities
+ * Also, is responsible for adding components to the component mask of entities
+ */
 /*!\class Entities
  *
  */
 class Entities{
 public:
-	Entities(Components& c){
-		components = c;
+	Entities(ComponentManager cm){
+		cm = componentManager;
 	}
 
 	Entity create(){
@@ -163,50 +130,87 @@ public:
 		}
 		ComponentMask CMask;
 		CMask.set(0);
-		entities.emplace_back(entity, CMask);
+		entities[entity] = CMask;
 		return entity;
 	}
 	void remove(Entity entity){
-		auto it = std::find_if(entities.begin(), entities.end(), CompareFirst<Entity,ComponentMask>(entity));
-		int index = it - entities.begin();
-		availableIndices.push(index);
 		deletedEntities.push(entity);
 		/** TODO
 		 * use ComponentMask to remove related components
 		 */
 	}
 private:
-	vectorOfPairs<Entity, ComponentMask> entities;
-	std::queue<Entity> deletedEntities;
-	std::queue<int> availableIndices;
-	Entity entityCount = 0;
-	Components components;
+	std::vector<ComponentMask> entities; //! index = entity id. Value = component mask
+	std::queue<Entity> deletedEntities; //! available indices to use in entities vector
+	Entity entityCount = 0; //! Max number of entity ids used so far
+	ComponentManager componentManager;
 };
-
-/*!\class ISystem
- * \brief base class for all system types
- *
+/*!\class BaseSystem
+ * \brief class that all systems should inherit from
  */
-class ISystem{
+class BaseSystem{
 public:
-	virtual ~ISystem();
+	BaseSystem(){};
+	virtual ~BaseSystem(){};
 	virtual void update();
 	virtual void init();
 	virtual void destroy();
 
-};
+}; // BaseSystem Interface
 
-/*!\class Systems
- * \brief class to hold all systems and functionality to call all derived methods from ISystem.
- */
-class Systems{
+class TestSystem : public BaseSystem{
 public:
-
-private:
-
-	flatMap<std::string, std::unique_ptr<ISystem>> systems;
-
+	TestSystem(){};
+	~TestSystem(){};
+	void update(){};
+	void init(){};
+	void destroy(){};
 };
 
-}
+/**\class Systems
+ *
+ */
+class SystemManager{
+public:
+	template <class T>
+	void add(T systemObject){
+		systems.push_back(std::unique_ptr<BaseSystem>(new T));
+	}
+
+	void initAll(){
+		for(auto const& system : systems){
+			system->init();
+		}
+	}
+
+	void updateAll(){
+		for(auto const& system : systems){
+			system->update();
+		}
+	}
+
+	void destroyAll(){
+		for(auto const& system : systems){
+			system->destroy();
+		}
+		systems.clear();
+	}
+	void test(){
+		/*
+	}
+		ecs::TestSystem testS;
+		systems.push_back(testS);
+		for(BaseSystem test : systems){
+			test.update();
+		}*/
+	}
+private:
+	std::vector<std::unique_ptr<BaseSystem>> systems;
+
+}; // Systems class
+
+}// ecs namespace
+
+
+
 #endif /* ECS_HPP_ */
