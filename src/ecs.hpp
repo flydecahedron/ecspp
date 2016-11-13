@@ -111,6 +111,7 @@ public:
 		auto it = std::find_if(pointers.begin(), pointers.end(), CompareFirst<std::string,void*>(componentName));
 		return it->second;
 	}
+
 	ComponentMask bitMask(std::initializer_list<std::string> componentNames){
 		ComponentMask CMask;
 		for(auto it : componentNames){
