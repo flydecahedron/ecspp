@@ -52,6 +52,7 @@ const int maxComponentTypes = 64;
 typedef unsigned int Entity;
 typedef std::bitset<maxComponentTypes> ComponentMask;
 typedef std::pair<Entity, ComponentMask> EntityData;
+typedef std::hash<std::string> stringHash;
 /*!
  * \brief vectorOfPairs is used to hold entity ids and their component masks
  * \tparam Key entity id

@@ -10,7 +10,13 @@
 
 #include "ecs.hpp"
 using namespace std;
+void test(){
+	struct CTest{
+		std::string name = "it worked bitch";
+	};
 
+
+}
 
 int main() {
 
