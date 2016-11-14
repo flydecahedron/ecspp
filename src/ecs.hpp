@@ -52,6 +52,7 @@ const int maxComponentTypes = 64;
 typedef unsigned int Entity;
 typedef std::bitset<maxComponentTypes> ComponentMask;
 typedef std::pair<Entity, ComponentMask> EntityData;
+typedef std::hash<std::string> stringHash;
 /*!
  * \brief vectorOfPairs is used to hold entity ids and their component masks
  * \tparam Key entity id
@@ -111,7 +112,10 @@ public:
 		auto it = std::find_if(pointers.begin(), pointers.end(), CompareFirst<std::string,void*>(componentName));
 		return it->second;
 	}
-	ComponentMask bitMask(std::initializer_list<std::string> componentNames){
+	/*!\fn getBitMask
+	 *
+	 */
+	ComponentMask getBitMask(std::initializer_list<std::string> componentNames){
 		ComponentMask CMask;
 		for(auto it : componentNames){
 			unsigned short int bit = types[it];
@@ -125,43 +129,7 @@ private:
 	unsigned short int bitCounter = 1;
 
 };
-/*!\class Entities
- * Contains all entities and manages add, remove, create, destroy functionalities.
- * Also, is responsible for adding components to the component mask of entities
- */
-class Entities{
-public:
-	Entities(ComponentManager cm){
-		cm = componentManager;
-	}
 
-	Entity create(){
-		Entity entity;
-		if(deletedEntities.empty()){
-			entity = entityCount;
-			++entityCount;
-		}
-		else{
-			entity = deletedEntities.front();
-			deletedEntities.pop();
-		}
-		ComponentMask CMask;
-		CMask.set(0);
-		entities[entity] = CMask;
-		return entity;
-	}
-	void remove(Entity entity){
-		deletedEntities.push(entity);
-		/** TODO
-		 * use ComponentMask to remove related components
-		 */
-	}
-private:
-	std::vector<ComponentMask> entities; //! index = entity id. Value = component mask
-	std::queue<Entity> deletedEntities; //! available indices to use in entities vector
-	Entity entityCount = 0; //! Max number of entity ids used so far
-	ComponentManager componentManager;
-};
 /*!\class BaseSystem
  * \brief class that all systems should inherit from
  */
@@ -172,6 +140,11 @@ public:
 	virtual void update();
 	virtual void init();
 	virtual void destroy();
+	virtual void removeEntity(Entity& entity);
+	virtual void addEntity();
+	//virtual void getComponents();
+private:
+
 
 }; // BaseSystem Interface
 
@@ -190,8 +163,8 @@ public:
 class SystemManager{
 public:
 	template <class T>
-	void add(T systemObject){
-		systems.push_back(std::unique_ptr<BaseSystem>(new T));
+	void add(T& systemObject){
+		systems.push_back(std::shared_ptr<BaseSystem>(systemObject));
 	}
 
 	void initAll(){
@@ -213,9 +186,109 @@ public:
 		systems.clear();
 	}
 private:
-	std::vector<std::unique_ptr<BaseSystem>> systems;
+	std::vector<std::shared_ptr<BaseSystem>> systems;
 
 }; // Systems class
+
+/*!\class Entities
+ * Contains all entities and manages add, remove, create, destroy functionalities.
+ * Also, is responsible for adding components to the component mask of entities
+ */
+class EntityManager{
+public:
+	EntityManager(ComponentManager& cm, SystemManager& sm){
+		cm = componentManager;
+		sm = systemManager;
+		entities.reserve(maxEntities);
+	}
+	/*!\fn create
+	 *
+	 */
+	Entity create(){
+		Entity entity;
+		if(deletedEntities.empty()){
+			entity = entityCount;
+			++entityCount;
+		}
+		else{
+			entity = deletedEntities.front();
+			deletedEntities.pop();
+		}
+		ComponentMask CMask;
+		CMask.set(0, true);//!first bit in CMask is "alive" bit
+		entities[entity] = CMask;
+		return entity;
+	}
+
+	Entity create(std::initializer_list<std::string>& components){
+		Entity e = create();
+		addEntity(e, components);
+		return e;
+	}
+	/*!\fn remove
+	 * sets the "alive" flag for the passed in entity to false.
+	 */
+	void remove(Entity& entity){
+		deletedEntities.push(entity);
+		entities[entity] = 0;
+	}
+	//! overload that takes variable amounts of entities
+	void remove(std::initializer_list<Entity>& entities){
+		for(Entity e : entities){
+			deletedEntities.push(e);
+			this->entities[e] = 0;
+		}
+	}
+private:
+	/*!\fn addEntity
+	 *
+	 */
+	void addEntity(Entity& entity){
+		if(deletedEntities.empty()){
+			entity = entityCount;
+			++entityCount;
+		}
+		else{
+			entity = deletedEntities.front();
+			deletedEntities.pop();
+		}
+		ComponentMask CMask;
+		CMask.set(0, true);//!first bit in CMask is "alive" bit
+		entities[entity] = CMask;
+	}
+	//! addEntity overload to take multiple components to mask entity with while adding
+	void addEntity(Entity& entity, std::initializer_list<std::string>& components){
+		if(deletedEntities.empty()){
+			entity = entityCount;
+			++entityCount;
+		}
+		else{
+			entity = deletedEntities.front();
+			deletedEntities.pop();
+		}
+		ComponentMask CMask;
+		CMask.set(0, true);//!first bit in CMask is "alive" bit
+		CMask | componentManager.getBitMask(components);
+		entities[entity] = CMask;
+	}
+	/*!\fn maskEntity
+	 * 'assigns' components to an entity by ORing its component mask with given components
+	 */
+	void maskEntity(Entity& entity, ComponentMask& CMask){
+		entities[entity] | CMask;
+	}
+	//! maskEntity overload to take names of components
+	void maskEntity(Entity& entity, std::initializer_list<std::string>& components){
+		entities[entity] |componentManager.getBitMask(components);
+	}
+
+	std::vector<ComponentMask> entities; //! index = entity id. Value = component mask
+	std::queue<Entity> deletedEntities; //! available indices to use in entities vector
+	std::unordered_map<std::string, std::vector<std::unique_ptr<BaseSystem>>> componentRegistry;
+	Entity entityCount = 0; //! Max number of entity ids used so far
+	ComponentManager componentManager;
+	SystemManager systemManager;
+};
 
 }// ecs namespace
 
