@@ -28,20 +28,24 @@ public:
  * generic component vector container
  */
 template <class C>
-class TestContainer : ecs::BaseContainer {
+class ComponentVector : ecs::BaseContainer {
 public:
-	TestContainer(){
-		C first;
-	}
-	~TestContainer(){}
+	ComponentVector(){}
+	~ComponentVector(){}
+	/*!\fn add
+	 * add passed in entity to vector with default component
+	 */
 	void add(ecs::Entity& entity){
 		C component;
 		components.emplace_back(entity, component);
 	}
-
+	//! add overload that takes a reference of a component
 	void add(ecs::Entity& entity, C& component){
 		components.emplace_back(std::make_pair(entity,component));
 	}
+	/*!\fn remove
+	 * removes the entity and its component from the vector
+	 */
 	void remove(ecs::Entity& entity){
 		if(!components.empty()){
 			auto it = std::find_if(components.begin(), components.end(),ecs::CompareFirst<ecs::Entity,C>(entity));
@@ -49,39 +53,46 @@ public:
 			components.pop_back();
 		}
 	}
+	/*!\fn get
+	 * returns the component associated with the passed in entity
+	 */
+	C get(ecs::Entity& entity){
+		auto it = std::find_if(components.begin(), components.end(),ecs::CompareFirst<ecs::Entity,C>(entity));
+		return it->second;
+	}
+	/*!\fn init
+	 * sets the capacity of the vector
+	 */
 	void init(const int& maxComponents){
 		components.reserve(maxComponents);
 	}
-	typedef C value_type;
-	std::vector<std::pair<ecs::Entity, C>> components;
-
 private:
-
+	std::vector<std::pair<ecs::Entity, C>> components;
 };// TestContainer
 
 void test_TestContainer(){
-	TestContainer<CTest>* testVec = new TestContainer<CTest>;
-	testVec->init(200);
-	for(int i = 0; i < 21; i++){
-		ecs::Entity e = i;
-		CTest test;
-		test.name = std::to_string(i);
-		testVec->components.emplace_back(std::make_pair(e,test));
-	}
+	ComponentVector<CTest>* testVec = new ComponentVector<CTest>;
+	testVec->init(200); //reserve 200
 
-	for(int i = 0; i < 21; i++){
+	//add enough to double capacity
+	//uses default component
+	for(int i = 0; i < 201; i++){
+		ecs::Entity e = i;
+		testVec->add(e);
+	}
+	//remove all entities just added
+	for(int i = 0; i < 201; i++){
 		ecs::Entity e = i;
 		testVec->remove(e);
 	}
-
-
+	//test overload of add
 	for(int i = 0; i < 21; i++){
 		ecs::Entity e = i;
 		CTest test;
 		test.name = std::to_string(i);
 		testVec->add(e,test);
 	}
-
+	//print 'name' variable of all components
 	for(std::pair<ecs::Entity, CTest> comp : testVec->components){
 		std::cout << comp.second.name << std::endl;
 	}
@@ -89,8 +100,7 @@ void test_TestContainer(){
 	std::cout << testVec->components.capacity() << std::endl;
 	std::cout << "Size" << std::endl;
 	std::cout << testVec->components.size() << std::endl;
-	//testVec.components;
-	//auto testVec = std::make_shared<TestContainer<CTest>>();
+
 }
 void test(){
 	//auto stest = new STest();
