@@ -89,6 +89,15 @@ struct CompareSecond
   private:
     T m_t;
 };
+/*!\class BaseContainer
+ * Base class for component container implementations
+ */
+class BaseContainer{
+	virtual ~BaseContainer(){};
+	virtual void add() = 0;
+	virtual void remove() = 0;
+	virtual void init() = 0;
+};
 /*!\class ComponentManager
  *
  */
