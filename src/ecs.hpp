@@ -93,6 +93,7 @@ struct CompareSecond
  * Base class for component container implementations
  */
 class BaseContainer{
+public:
 	virtual ~BaseContainer(){};
 	virtual void add() = 0;
 	virtual void remove() = 0;
