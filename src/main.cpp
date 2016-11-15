@@ -63,6 +63,9 @@ private:
 void test_TestContainer(){
 	TestContainer<CTest>* testVec = new TestContainer<CTest>;
 	testVec->init(200);
+	ecs::Entity e = 1;
+	testVec->add(e);
+
 	//testVec.components;
 	//auto testVec = std::make_shared<TestContainer<CTest>>();
 }
