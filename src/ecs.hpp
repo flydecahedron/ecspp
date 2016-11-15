@@ -99,10 +99,10 @@ public:
 	 */
 	template <class T>
 	void add(const std::string& componentName, T& dataStruct){
-		T * ptr = dataStruct;
+		//T * ptr = dataStruct;
 		types[componentName] = bitCounter;
 		++bitCounter;
-		pointers.emplace_back(componentName, ptr);
+		//TODO pointers to component vectors pointers.emplace_back(componentName, ptr);
 	}
 	/*!\fn get
 	 * returns void ptr to component data structure related to the passed in name
@@ -161,9 +161,10 @@ public:
  */
 class SystemManager{
 public:
-	template <class T>
-	void add(T& systemObject){
-		systems.push_back(std::shared_ptr<BaseSystem>(systemObject));
+	template<class T>
+	void add(std::shared_ptr<T> systemPtr){
+		std::static_pointer_cast<BaseSystem>(systemPtr);
+		systems.push_back(systemPtr);
 	}
 
 	void initAll(){
@@ -290,7 +291,33 @@ private:
 };
 
 }// ecs namespace
+struct CTest{
+	std::string name = "it worked bitch";
+};
 
+/*! TESTS
+ *
+ */
+class STest : ecs::BaseSystem{
+public:
+	STest(){};
+	~STest(){};
+    void update(){};
+	void init(){};
+	void destroy(){};
+	void removeEntity(ecs::Entity& entity){};
+	void addEntity(){};
+	std::vector<CTest> testComponents;
+};
+void test(){
+	//auto stest = new STest();
+	//auto stest = std::make_shared<STest>();
+	ecs::ComponentManager cm;
+	ecs::SystemManager sm;
+	ecs::EntityManager em(cm, sm);
 
+	cm.add("test", stest->testComponents);
+	sm.add(stest);
+}
 
 #endif /* ECS_HPP_ */
