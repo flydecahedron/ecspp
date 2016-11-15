@@ -5,12 +5,7 @@
 
 #include <iostream>
 
-#include "flat_map.hpp"
-#include <iostream>
-
 #include "ecs.hpp"
-#include <algorithm>
-#include <utility>
 /*! TESTS
  *
  */
@@ -43,6 +38,10 @@ public:
 		C component;
 		components.emplace_back(entity, component);
 	}
+
+	void add(ecs::Entity& entity, C& component){
+		components.emplace_back(std::make_pair(entity,component));
+	}
 	void remove(ecs::Entity& entity){
 		if(!components.empty()){
 			auto it = std::find_if(components.begin(), components.end(),ecs::CompareFirst<ecs::Entity,C>(entity));
@@ -63,9 +62,33 @@ private:
 void test_TestContainer(){
 	TestContainer<CTest>* testVec = new TestContainer<CTest>;
 	testVec->init(200);
-	ecs::Entity e = 1;
-	testVec->add(e);
+	for(int i = 0; i < 21; i++){
+		ecs::Entity e = i;
+		CTest test;
+		test.name = std::to_string(i);
+		testVec->components.emplace_back(std::make_pair(e,test));
+	}
 
+	for(int i = 0; i < 21; i++){
+		ecs::Entity e = i;
+		testVec->remove(e);
+	}
+
+
+	for(int i = 0; i < 21; i++){
+		ecs::Entity e = i;
+		CTest test;
+		test.name = std::to_string(i);
+		testVec->add(e,test);
+	}
+
+	for(std::pair<ecs::Entity, CTest> comp : testVec->components){
+		std::cout << comp.second.name << std::endl;
+	}
+	std::cout << "Capacity" << std::endl;
+	std::cout << testVec->components.capacity() << std::endl;
+	std::cout << "Size" << std::endl;
+	std::cout << testVec->components.size() << std::endl;
 	//testVec.components;
 	//auto testVec = std::make_shared<TestContainer<CTest>>();
 }
@@ -83,6 +106,6 @@ void test(){
 }
 
 int main() {
-	test();
+	test_TestContainer();
 	return 0;
 }
