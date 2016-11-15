@@ -95,9 +95,9 @@ struct CompareSecond
 class BaseContainer{
 public:
 	virtual ~BaseContainer(){};
-	virtual void add() = 0;
-	virtual void remove() = 0;
-	virtual void init() = 0;
+	virtual void add(Entity& entity) = 0;
+	virtual void remove(Entity& entity) = 0;
+	virtual void init(const int& maxComponents) = 0;
 };
 /*!\class ComponentManager
  *

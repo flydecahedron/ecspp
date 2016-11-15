@@ -9,7 +9,8 @@
 #include <iostream>
 
 #include "ecs.hpp"
-
+#include <algorithm>
+#include <utility>
 /*! TESTS
  *
  */
@@ -34,23 +35,37 @@ public:
 template <class C>
 class TestContainer : ecs::BaseContainer {
 public:
-	TestContainer(){};
-	~TestContainer(){};
-	void add(ecs::Entity& entity, C& component){
-		components.push_back(entity, component);
+	TestContainer(){
+		C first;
+	}
+	~TestContainer(){}
+	void add(ecs::Entity& entity){
+		C component;
+		components.emplace_back(entity, component);
 	}
 	void remove(ecs::Entity& entity){
 		if(!components.empty()){
 			auto it = std::find_if(components.begin(), components.end(),ecs::CompareFirst<ecs::Entity,C>(entity));
-			components.swap(components[it], components.back);
+			std::swap(components[it - components.begin()], components.back());
+			components.pop_back();
 		}
 	}
 	void init(const int& maxComponents){
 		components.reserve(maxComponents);
 	}
+	typedef C value_type;
+	std::vector<std::pair<ecs::Entity, C>> components;
+
 private:
-	std::vector<ecs::Entity, C> components;
+
 };// TestContainer
+
+void test_TestContainer(){
+	TestContainer<CTest>* testVec = new TestContainer<CTest>;
+	testVec->init(200);
+	//testVec.components;
+	//auto testVec = std::make_shared<TestContainer<CTest>>();
+}
 void test(){
 	//auto stest = new STest();
 	auto stest = std::make_shared<STest>();
