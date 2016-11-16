@@ -100,7 +100,7 @@ public:
  * generic component vector container
  */
 template <class Component>
-class ComponentVector : BaseContainer {
+class ComponentVector : public BaseContainer {
 public:
 	ComponentVector(){}
 	~ComponentVector(){}
@@ -153,10 +153,13 @@ public:
 	 */
 	template <class Component>
 	void add(const std::string& name, Component& type){
+		for(auto const& it : types){
+			assert(it.first != name);
+		}
 		types[name] = bitCounter;
 		++bitCounter;
-		ComponentVector<Component> newCompVec;
-		//TODO pointers to component vectors pointers.emplace_back(componentName, ptr);
+		auto cVecPtr = std::make_shared<ComponentVector<Component>>();
+		pointers[name] = cVecPtr;
 	}
 	/*!\fn get
 	 * returns void ptr to component data structure related to the passed in name
@@ -200,29 +203,27 @@ protected:
  */
 class Systems{
 public:
-	/*!
-	 *
-	 */
+	//! registers a system by name
 	template<class T>
-	void add(std::string name, std::shared_ptr<T> systemPtr){
+	void add(std::string const& name, std::shared_ptr<T> systemPtr){
 		for(auto const& it : pointers){
 			assert(it.first != name);
 		}
 		pointers[name] = std::static_pointer_cast<BaseSystem>(systemPtr);
 	}
-
+	//! calls init on all registered systmes
 	void init(){
 		for(auto const& it : pointers){
 			it.second->init();
 		}
 	}
-
+	//! calls update on all registered systems
 	void update(){
 		for(auto const& it : pointers){
 			it.second->update();
 		}
 	}
-
+	//! calls destroy on all registered systems
 	void destroy(){
 		for(auto const& it : pointers){
 			it.second->destroy();
@@ -269,7 +270,7 @@ public:
 		return e;
 	}
 	/*!\fn remove
-	 * sets the "alive" flag for the passed in entity to false.
+	 * \brief sets the "alive" flag for the passed in entity to false.
 	 */
 	void remove(Entity& entity){
 		deletedEntities.push(entity);

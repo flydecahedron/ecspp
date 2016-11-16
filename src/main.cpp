@@ -7,6 +7,6 @@
 
 #include "ecs_test.hpp"
 int main() {
-	test_ComponentVector();
+	ComponentVector_test();
 	return 0;
 }

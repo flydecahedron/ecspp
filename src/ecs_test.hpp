@@ -27,7 +27,7 @@ public:
 }; //STest
 
 
-void test_ComponentVector(){
+void ComponentVector_test(){
 	ecs::ComponentVector<CTest>* testVec = new ecs::ComponentVector<CTest>;
 	testVec->init(200); //reserve 200
 
@@ -57,18 +57,19 @@ void test_ComponentVector(){
 	std::cout << testVec->components.capacity() << std::endl;
 	std::cout << "Size" << std::endl;
 	std::cout << testVec->components.size() << std::endl;
-
 }
 
+void ComponentContainers_test(){
+
+}
 void test(){
-	//auto stest = new STest();
-	auto stest = std::make_shared<STest>();
+	CTest testComp;
 	ecs::ComponentContainers cm;
-	ecs::SystemManager sm;
-	ecs::EntityManager em(cm, sm);
+	//ecs::SystemManager sm;
+	//ecs::EntityManager em(cm, sm);
 	//TODO make a custom component container wrapper
 
-	cm.add("test", stest->testComponents);
+	cm.add("test", testComp);
 	// maybe this functionality is redundant???
 	//sm.add(stest);
 }
