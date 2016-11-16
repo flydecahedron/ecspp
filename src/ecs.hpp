@@ -52,16 +52,10 @@ const int maxComponentTypes = 64;
 typedef unsigned int Entity;
 typedef std::bitset<maxComponentTypes> ComponentMask;
 typedef std::pair<Entity, ComponentMask> EntityData;
-/*!
- * \brief vectorOfPairs is used to hold entity ids and their component masks
- * \tparam Key entity id
- * \tparm T component mask
- */
-template <typename Key, class T>
-using vectorOfPairs = std::vector<std::pair<Key, T>>;
+
 /*!\class CompareFirst
  * \brief unary predicate returns true if pair.first equals the passed in value.
- * Meant to be used with find_if and vectorOfPairs.
+ * Meant to be used with find_if and a vector of pairs
  * http://stackoverflow.com/questions/12008059/find-if-and-stdpair-but-just-one-element
  */
 template <typename K, typename T>
@@ -74,9 +68,10 @@ struct CompareFirst
   private:
     K m_key;
 };
+
 /*!\class CompareSecond
- * \brief unary predicate returns true if pair.first equals the passed in value.
- * Meant to be used with find_if and vectorOfPairs.
+ * \brief unary predicate returns true if pair.second equals the passed in value.
+ * Meant to be used with find_if and a vector of pairs
  * http://stackoverflow.com/questions/12008059/find-if-and-stdpair-but-just-one-element
  */
 template <typename K, typename T>
@@ -89,6 +84,7 @@ struct CompareSecond
   private:
     T m_t;
 };
+
 /*!\class BaseContainer
  * Base class for component container implementations
  */
@@ -99,6 +95,53 @@ public:
 	virtual void remove(Entity& entity) = 0;
 	virtual void init(const int& maxComponents) = 0;
 };
+
+/*!\class ComponentVector
+ * generic component vector container
+ */
+template <class C>
+class ComponentVector : BaseContainer {
+public:
+	ComponentVector(){}
+	~ComponentVector(){}
+	/*!\fn add
+	 * add passed in entity to vector with default component
+	 */
+	void add(Entity& entity){
+		C component;
+		components.emplace_back(entity, component);
+	}
+	//! add overload that takes a reference of a component
+	void add(Entity& entity, C& component){
+		components.emplace_back(std::make_pair(entity,component));
+	}
+	/*!\fn remove
+	 * removes the entity and its component from the vector
+	 */
+	void remove(Entity& entity){
+		if(!components.empty()){
+			auto it = std::find_if(components.begin(), components.end(),CompareFirst<Entity,C>(entity));
+			std::swap(components[it - components.begin()], components.back());
+			components.pop_back();
+		}
+	}
+	/*!\fn get
+	 * returns the component associated with the passed in entity
+	 */
+	C get(Entity& entity){
+		auto it = std::find_if(components.begin(), components.end(),CompareFirst<Entity,C>(entity));
+		return it->second;
+	}
+	/*!\fn init
+	 * sets the capacity of the vector
+	 */
+	void init(const int& maxComponents){
+		components.reserve(maxComponents);
+	}
+private:
+	std::vector<std::pair<Entity, C>> components;
+};// ComponentVector
+
 /*!\class ComponentManager
  *
  */
@@ -133,7 +176,7 @@ public:
 		return CMask;
 	}
 private:
-	vectorOfPairs<std::string, void*> pointers;
+	std::vector< std::pair< std::string, void*> > pointers;
 	std::unordered_map<std::string, unsigned short int> types;
 	unsigned short int bitCounter = 1;
 
