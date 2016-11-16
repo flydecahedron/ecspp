@@ -26,7 +26,6 @@ public:
 	std::vector<CTest> testComponents;
 }; //STest
 
-
 void ComponentVector_test(){
 	ecs::ComponentVector<CTest>* testVec = new ecs::ComponentVector<CTest>;
 	testVec->init(200); //reserve 200
@@ -60,18 +59,42 @@ void ComponentVector_test(){
 }
 
 void ComponentContainers_test(){
+	CTest testComp;
+	ecs::ComponentContainers compContainers;
+	compContainers.add("test", testComp);
+	auto testVec = std::static_pointer_cast<ecs::ComponentVector<CTest>>(compContainers.get("test"));
+	testVec->init(200);
+	testVec->init(200); //reserve 200
 
+	//add enough to double capacity
+	//uses default component
+	for(int i = 0; i < 201; i++){
+		ecs::Entity e = i;
+		testVec->add(e);
+	}
+	//remove all entities just added
+	for(int i = 0; i < 201; i++){
+		ecs::Entity e = i;
+		testVec->remove(e);
+	}
+	//test overload of add
+	for(int i = 0; i < 21; i++){
+		ecs::Entity e = i;
+		CTest test;
+		test.name = std::to_string(i);
+		testVec->add(e,test);
+	}
+	//print 'name' variable of all components
+	for(std::pair<ecs::Entity, CTest> comp : testVec->components){
+		std::cout << comp.second.name << std::endl;
+	}
+	std::cout << "Capacity" << std::endl;
+	std::cout << testVec->components.capacity() << std::endl;
+	std::cout << "Size" << std::endl;
+	std::cout << testVec->components.size() << std::endl;
 }
 void test(){
-	CTest testComp;
-	ecs::ComponentContainers cm;
-	//ecs::SystemManager sm;
-	//ecs::EntityManager em(cm, sm);
-	//TODO make a custom component container wrapper
 
-	cm.add("test", testComp);
-	// maybe this functionality is redundant???
-	//sm.add(stest);
 }
 
 #endif /* ECS_TEST_HPP_ */
