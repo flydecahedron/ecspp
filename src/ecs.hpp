@@ -239,9 +239,8 @@ private:
  */
 class EntityManager{
 public:
-	EntityManager(ComponentContainers& cm, Systems& sm){
-		cm = componentManager;
-		sm = systemManager;
+	EntityManager(ComponentContainers& compContainers){
+		compContainers = componentContainers;
 		entities.reserve(maxEntities);
 	}
 	/*!\fn create
@@ -311,7 +310,7 @@ private:
 		}
 		ComponentMask CMask;
 		CMask.set(0, true);//!first bit in CMask is "alive" bit
-		CMask | componentManager.getBitMask(components);
+		CMask | componentContainers.getBitMask(components);
 		entities[entity] = CMask;
 	}
 	/*!\fn maskEntity
@@ -322,15 +321,13 @@ private:
 	}
 	//! maskEntity overload to take names of components
 	void maskEntity(Entity& entity, std::initializer_list<std::string>& components){
-		entities[entity] |componentManager.getBitMask(components);
+		entities[entity] |componentContainers.getBitMask(components);
 	}
 
 	std::vector<ComponentMask> entities; //! index = entity id. Value = component mask
 	std::queue<Entity> deletedEntities; //! available indices to use in entities vector
-	std::unordered_map<std::string, std::vector<std::unique_ptr<BaseSystem>>> componentRegistry;
 	Entity entityCount = 0; //! Max number of entity ids used so far
-	ComponentContainers componentManager;
-	Systems systemManager;
+	ComponentContainers componentContainers;
 };
 
 
