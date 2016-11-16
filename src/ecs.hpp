@@ -99,20 +99,21 @@ public:
 /*!\class ComponentVector
  * generic component vector container
  */
-template <class C>
+template <class Component>
 class ComponentVector : BaseContainer {
 public:
 	ComponentVector(){}
 	~ComponentVector(){}
+
 	/*!\fn add
-	 * add passed in entity to vector with default component
+	 * \brief add passed in entity to vector with default component
 	 */
 	void add(Entity& entity){
-		C component;
+		Component component;
 		components.emplace_back(entity, component);
 	}
 	//! add overload that takes a reference of a component
-	void add(Entity& entity, C& component){
+	void add(Entity& entity, Component& component){
 		components.emplace_back(std::make_pair(entity,component));
 	}
 	/*!\fn remove
@@ -120,7 +121,7 @@ public:
 	 */
 	void remove(Entity& entity){
 		if(!components.empty()){
-			auto it = std::find_if(components.begin(), components.end(),CompareFirst<Entity,C>(entity));
+			auto it = std::find_if(components.begin(), components.end(),CompareFirst<Entity,Component>(entity));
 			std::swap(components[it - components.begin()], components.back());
 			components.pop_back();
 		}
@@ -128,8 +129,8 @@ public:
 	/*!\fn get
 	 * returns the component associated with the passed in entity
 	 */
-	C get(Entity& entity){
-		auto it = std::find_if(components.begin(), components.end(),CompareFirst<Entity,C>(entity));
+	Component get(Entity& entity){
+		auto it = std::find_if(components.begin(), components.end(),CompareFirst<Entity,Component>(entity));
 		return it->second;
 	}
 	/*!\fn init
@@ -138,7 +139,7 @@ public:
 	void init(const int& maxComponents){
 		components.reserve(maxComponents);
 	}
-	std::vector<std::pair<Entity, C>> components;
+	std::vector<std::pair<Entity, Component>> components;
 //TODO finish interface so logging can be done with components private
 };// ComponentVector
 
@@ -148,38 +149,36 @@ public:
 class ComponentContainers{
 public:
 	/*!\fn add
-	 * places a new void ptr to types map for the passed in component data structure. Name is the key
+	 * \brief makes a new container for the passed in type.
 	 */
-	template <class T>
-	void add(const std::string& componentName, T& dataStruct){
-		//T * ptr = dataStruct;
-		types[componentName] = bitCounter;
+	template <class Component>
+	void add(const std::string& name, Component& type){
+		types[name] = bitCounter;
 		++bitCounter;
+		ComponentVector<Component> newCompVec;
 		//TODO pointers to component vectors pointers.emplace_back(componentName, ptr);
 	}
 	/*!\fn get
 	 * returns void ptr to component data structure related to the passed in name
 	 */
-	std::shared_ptr< BaseContainer > get(const std::string& componentName){
-		auto it = std::find_if(containers.begin(), containers.end(),
-				CompareFirst<std::string, std::shared_ptr< BaseContainer> >(componentName));
-		return it->second;
+	std::shared_ptr< BaseContainer > get(const std::string& name){
+		return containers[name];
 	}
 	/*!\fn getBitMask
 	 *
 	 */
-	ComponentMask getBitMask(std::initializer_list<std::string> componentNames){
+	ComponentMask getBitMask(std::initializer_list<std::string> names){
 		ComponentMask CMask;
-		for(auto it : componentNames){
+		for(auto it : names){
 			unsigned short int bit = types[it];
 			CMask.set(bit , true);
 		}
 		return CMask;
 	}
 private:
-	std::vector< std::pair< std::string, std::shared_ptr< BaseContainer> > > containers;
+	std::unordered_map<std::string, std::shared_ptr< BaseContainer> > containers;
 	std::unordered_map<std::string, unsigned short int> types;
-	unsigned short int bitCounter = 1;
+	unsigned short int bitCounter = 1; //bit '0' is alive flag for entities
 
 };
 
@@ -203,34 +202,34 @@ private:
 /**\class Systems
  *
  */
-class SystemManager{
+class Systems{
 public:
 	template<class T>
 	void add(std::shared_ptr<T> systemPtr){
 		std::static_pointer_cast<BaseSystem>(systemPtr);
-		systems.push_back(systemPtr);
+		//pointers.push_back(systemPtr);
 	}
 
 	void initAll(){
-		for(auto const& system : systems){
-			system->init();
+		for(auto const& system : pointers){
+			//system->init();
 		}
 	}
 
 	void updateAll(){
-		for(auto const& system : systems){
-			system->update();
+		for(auto const& system : pointers){
+			//system->update();
 		}
 	}
 
 	void destroyAll(){
-		for(auto const& system : systems){
-			system->destroy();
+		for(auto const& system : pointers){
+			//system->destroy();
 		}
-		systems.clear();
+		pointers.clear();
 	}
 private:
-	std::vector<std::shared_ptr<BaseSystem>> systems;
+	std::unordered_map<std::string, std::shared_ptr<BaseSystem>> pointers;
 
 }; // Systems class
 
@@ -240,7 +239,7 @@ private:
  */
 class EntityManager{
 public:
-	EntityManager(ComponentContainers& cm, SystemManager& sm){
+	EntityManager(ComponentContainers& cm, Systems& sm){
 		cm = componentManager;
 		sm = systemManager;
 		entities.reserve(maxEntities);
@@ -331,7 +330,7 @@ private:
 	std::unordered_map<std::string, std::vector<std::unique_ptr<BaseSystem>>> componentRegistry;
 	Entity entityCount = 0; //! Max number of entity ids used so far
 	ComponentContainers componentManager;
-	SystemManager systemManager;
+	Systems systemManager;
 };
 
 
