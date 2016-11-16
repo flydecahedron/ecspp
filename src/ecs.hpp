@@ -22,7 +22,7 @@
 #include <bitset> // component bitmasking
 #include <functional> //make_shared for creating new CMap
 #include <memory> //shared_ptr for CMaps
-#include <cassert> // static_assert component types
+#include <cassert>
 #include <algorithm>//find_if for entities
 #include <cassert>
 #include <exception>
@@ -200,27 +200,32 @@ protected:
  */
 class Systems{
 public:
+	/*!
+	 *
+	 */
 	template<class T>
-	void add(std::shared_ptr<T> systemPtr){
-		std::static_pointer_cast<BaseSystem>(systemPtr);
-		//pointers.push_back(systemPtr);
+	void add(std::string name, std::shared_ptr<T> systemPtr){
+		for(auto const& it : pointers){
+			assert(it.first != name);
+		}
+		pointers[name] = std::static_pointer_cast<BaseSystem>(systemPtr);
 	}
 
-	void initAll(){
-		for(auto const& system : pointers){
-			//system->init();
+	void init(){
+		for(auto const& it : pointers){
+			it.second->init();
 		}
 	}
 
-	void updateAll(){
-		for(auto const& system : pointers){
-			//system->update();
+	void update(){
+		for(auto const& it : pointers){
+			it.second->update();
 		}
 	}
 
-	void destroyAll(){
-		for(auto const& system : pointers){
-			//system->destroy();
+	void destroy(){
+		for(auto const& it : pointers){
+			it.second->destroy();
 		}
 		pointers.clear();
 	}
