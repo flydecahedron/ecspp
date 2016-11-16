@@ -138,8 +138,9 @@ public:
 	void init(const int& maxComponents){
 		components.reserve(maxComponents);
 	}
-private:
 	std::vector<std::pair<Entity, C>> components;
+private:
+//TODO finish interface so logging can be done with components private
 };// ComponentVector
 
 /*!\class ComponentManager
@@ -332,6 +333,7 @@ private:
 	ComponentManager componentManager;
 	SystemManager systemManager;
 };
+
 
 }// ecs namespace
 
