@@ -11,7 +11,7 @@
 #include "ecs.hpp"
 
 struct CTest{
-	std::string name = "it worked bitch";
+	std::string name = "default";
 };
 
 class STest : public ecs::BaseSystem{

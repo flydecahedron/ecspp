@@ -6,8 +6,8 @@
  * eff me right?
  * \subsection step2 Step 2: It's really not that bad
  * says no one on the internet
- * \subsectin step3 Step 3: Coming out
- * okay I'm actually enjoying it and hate visual studio D:
+ * \subsection step3 Step 3: Coming out
+ * okay I'm actually enjoying it and am not to thrilled about visual studio D:
  */
 
 /*! \file ecs.hpp
@@ -20,28 +20,33 @@
 #include <queue> // available entity ids and idices
 #include <typeindex> // to store component types
 #include <bitset> // component bitmasking
-#include <functional> //make_shared for creating new CMap
+#include <functional> //make_shared
 #include <memory> //shared_ptr for CMaps
 #include <cassert>
 #include <algorithm>//find_if for entities
 #include <cassert>
-#include <exception>
 #include <unordered_map> //Comonent Mask map
 #include <initializer_list>
 /*!\namespace ecs
- * \brief entity component system implementation where entities, components, and systems
- * are held in objects of those names respectively.
+ * \brief header only entity component system implementation
  *
  * Entities are a combination of a uuid and their component mask which is std::bitset. A component's
- * "bit" is determined by its index in the component type vector.
+ * "bit" is determined by its index in the component type vector. Bit '0' is the alive flag in the
+ * ComponentMask.
  *
- * boost flat_map is used for each different component type for contiguous memory and fast
- * iteration. Components are expected to hold most/all of what a system will need to update.
- * Components have to inherit from IComponent.
+ * Custom container objects derived from BaseContainer are used to hold components.
+ * At the moment there is only a vector implementation.
+ * Components are expected to hold most/all of what a system will need to update.
  *
- * Systems need to be derived from ISystem and define update, init, and destroy functions (messaging
- * functions may be added later). They will be updated in the order that they are added to the "Systems"
- * object. The "Systems" object will contain all of the systems in a vector.
+ * The 'ComponentContainers' object holds a map of BaseContainer shared_ptrs. At the moment, systems need
+ * to cast the ptr to the correct type and container using the 'ComponentContainerTypeCast' function where
+ * 'ContainerType' is the implemented container such as vector. For now, the only type of container is
+ * ComponentContainer so there is only one cast function (more may be added later):
+ * ComponentVectorCast.
+ *
+ * Systems need to be derived from BaseSystem and define update, init, and destroy functions (messaging
+ * functions may be added later). The 'Systems' object will contain all of the systems in a map where
+ * the key is the system's given name and the value is the object itself.
  *
  */
 namespace ecs{
@@ -55,7 +60,8 @@ typedef std::pair<Entity, ComponentMask> EntityData;
 
 /*!\class CompareFirst
  * \brief unary predicate returns true if pair.first equals the passed in value.
- * Meant to be used with find_if and a vector of pairs
+ *
+ * Meant to be used with find_if and a vector of pairs, for more info see:
  * http://stackoverflow.com/questions/12008059/find-if-and-stdpair-but-just-one-element
  */
 template <typename K, typename T>
@@ -71,7 +77,8 @@ struct CompareFirst
 
 /*!\class CompareSecond
  * \brief unary predicate returns true if pair.second equals the passed in value.
- * Meant to be used with find_if and a vector of pairs
+ *
+ * Meant to be used with find_if and a vector of pairs, for more info see:
  * http://stackoverflow.com/questions/12008059/find-if-and-stdpair-but-just-one-element
  */
 template <typename K, typename T>
@@ -84,6 +91,8 @@ struct CompareSecond
   private:
     T m_t;
 };
+
+/****************************** COMPONENT ******************************************************/
 
 /*!\class BaseContainer
  * Base class for component container implementations
@@ -116,6 +125,7 @@ public:
 	void add(Entity& entity, Component& component){
 		components.emplace_back(std::make_pair(entity,component));
 	}
+
 	/*!\fn remove
 	 * removes the entity and its component from the vector
 	 */
@@ -126,6 +136,7 @@ public:
 			components.pop_back();
 		}
 	}
+
 	/*!\fn get
 	 * returns the component associated with the passed in entity
 	 */
@@ -133,6 +144,7 @@ public:
 		auto it = std::find_if(components.begin(), components.end(),CompareFirst<Entity,Component>(entity));
 		return it->second;
 	}
+
 	/*!\fn init
 	 * sets the capacity of the vector
 	 */
@@ -152,7 +164,11 @@ std::shared_ptr<ComponentVector<Component>> ComponentVectorCast(std::shared_ptr<
 }
 
 /*!\class ComponentContainers
+ * \brief holds pointers to all component containers by name
  *
+ * A map of BaseContainer shared_ptrs is utilized so that there can be various implementations of component
+ * containers. Containers are accessed by name and need to casted after calling the get(). See
+ * ComponentVectorCast for an example of pointer cast.
  */
 class ComponentContainers{
 public:
@@ -175,9 +191,7 @@ public:
 	std::shared_ptr< BaseContainer > get(const std::string& name){
 		return pointers[name];
 	}
-	/*!\fn getBitMask
-	 *
-	 */
+	//! returns a ComponentMask representing the passed in names of types
 	ComponentMask getBitMask(std::initializer_list<std::string> names){
 		ComponentMask CMask;
 		for(auto it : names){
@@ -190,8 +204,9 @@ private:
 	std::unordered_map<std::string, std::shared_ptr< BaseContainer> > pointers;
 	std::unordered_map<std::string, unsigned short int> types;
 	unsigned short int bitCounter = 1; //bit '0' is alive flag for entities
-
 };
+
+/************************* SYSTEM *********************************************************/
 
 /*!\class BaseSystem
  * \brief class that all systems should inherit from
@@ -207,7 +222,7 @@ protected:
 }; // BaseSystem Interface
 
 /**\class Systems
- *
+ * \brief registers systems by name and can call inherited functions from BaseSystem
  */
 class Systems{
 public:
@@ -240,18 +255,18 @@ public:
 	}
 private:
 	std::unordered_map<std::string, std::shared_ptr<BaseSystem>> pointers;
-
 }; // Systems class
 
+/******************************** ENTITY *****************************************************/
+
 /*!\class Entities
- * Contains all entities and manages add, remove, create, destroy functionalities.
- * Also, is responsible for adding components to the component mask of entities
+ * \brief Contains all entities and has add, remove, create, and bitMasking functions
  */
-class EntityManager{
+class Entities{
 public:
-	EntityManager(ComponentContainers& compContainers){
+	Entities(ComponentContainers& compContainers){
 		compContainers = componentContainers;
-		entities.reserve(maxEntities);
+		componentMasks.reserve(maxEntities);
 	}
 	/*!\fn create
 	 *
@@ -268,7 +283,7 @@ public:
 		}
 		ComponentMask CMask;
 		CMask.set(0, true);//!first bit in CMask is "alive" bit
-		entities[entity] = CMask;
+		componentMasks[entity] = CMask;
 		return entity;
 	}
 
@@ -282,18 +297,18 @@ public:
 	 */
 	void remove(Entity& entity){
 		deletedEntities.push(entity);
-		entities[entity] = 0;
+		componentMasks[entity] = 0;
 	}
 	//! overload that takes variable amounts of entities
 	void remove(std::initializer_list<Entity>& entities){
 		for(Entity e : entities){
 			deletedEntities.push(e);
-			this->entities[e] = 0;
+			this->componentMasks[e] = 0;
 		}
 	}
 private:
 	/*!\fn addEntity
-	 *
+	 * \brief adds entity with a default ComponentMask
 	 */
 	void addEntity(Entity& entity){
 		if(deletedEntities.empty()){
@@ -306,7 +321,7 @@ private:
 		}
 		ComponentMask CMask;
 		CMask.set(0, true);//!first bit in CMask is "alive" bit
-		entities[entity] = CMask;
+		componentMasks[entity] = CMask;
 	}
 	//! addEntity overload to take multiple components to mask entity with while adding
 	void addEntity(Entity& entity, std::initializer_list<std::string>& components){
@@ -321,21 +336,21 @@ private:
 		ComponentMask CMask;
 		CMask.set(0, true);//!first bit in CMask is "alive" bit
 		CMask | componentContainers.getBitMask(components);
-		entities[entity] = CMask;
+		componentMasks[entity] = CMask;
 	}
 	/*!\fn maskEntity
-	 * 'assigns' components to an entity by ORing its component mask with given components
+	 * \brief 'assigns' components to an entity by ORing its component mask with given components
 	 */
 	void maskEntity(Entity& entity, ComponentMask& CMask){
-		entities[entity] | CMask;
+		componentMasks[entity] | CMask;
 	}
 	//! maskEntity overload to take names of components
 	void maskEntity(Entity& entity, std::initializer_list<std::string>& components){
-		entities[entity] |componentContainers.getBitMask(components);
+		componentMasks[entity] |componentContainers.getBitMask(components);
 	}
 
-	std::vector<ComponentMask> entities; //! index = entity id. Value = component mask
-	std::queue<Entity> deletedEntities; //! available indices to use in entities vector
+	std::vector<ComponentMask> componentMasks; //! index = entity id. bit '0' = alive flag
+	std::queue<Entity> deletedEntities; //! available indices to use in componentMasks vector
 	Entity entityCount = 0; //! Max number of entity ids used so far
 	ComponentContainers componentContainers;
 };
