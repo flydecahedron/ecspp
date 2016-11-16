@@ -162,7 +162,7 @@ public:
 	 * returns void ptr to component data structure related to the passed in name
 	 */
 	std::shared_ptr< BaseContainer > get(const std::string& name){
-		return containers[name];
+		return pointers[name];
 	}
 	/*!\fn getBitMask
 	 *
@@ -176,7 +176,7 @@ public:
 		return CMask;
 	}
 private:
-	std::unordered_map<std::string, std::shared_ptr< BaseContainer> > containers;
+	std::unordered_map<std::string, std::shared_ptr< BaseContainer> > pointers;
 	std::unordered_map<std::string, unsigned short int> types;
 	unsigned short int bitCounter = 1; //bit '0' is alive flag for entities
 
@@ -191,12 +191,8 @@ public:
 	virtual void update() = 0;
 	virtual void init() = 0;
 	virtual void destroy() = 0;
-	virtual void removeEntity(Entity& entity) = 0;
-	virtual void addEntity() = 0;
-	//virtual void getComponents();
-private:
-
-
+protected:
+	std::unordered_map<std::string, std::shared_ptr< BaseContainer> > components;
 }; // BaseSystem Interface
 
 /**\class Systems
