@@ -143,6 +143,14 @@ public:
 //TODO finish interface so logging can be done with components private
 };// ComponentVector
 
+/*!\fn ComponentVectorCast
+ * \brief casts a BaseContainer shared_ptr to a ComponentVector of the template type
+ */
+template<class Component>
+std::shared_ptr<ComponentVector<Component>> ComponentVectorCast(std::shared_ptr<BaseContainer> basePtr){
+	return std::static_pointer_cast<ecs::ComponentVector<Component>>(basePtr);
+}
+
 /*!\class ComponentContainers
  *
  */

@@ -62,7 +62,7 @@ void ComponentContainers_test(){
 	CTest testComp;
 	ecs::ComponentContainers compContainers;
 	compContainers.add("test", testComp);
-	auto testVec = std::static_pointer_cast<ecs::ComponentVector<CTest>>(compContainers.get("test"));
+	auto testVec = ecs::ComponentVectorCast<CTest>(compContainers.get("test"));
 	testVec->init(200);
 	testVec->init(200); //reserve 200
 
