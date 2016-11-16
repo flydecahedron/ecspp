@@ -139,14 +139,13 @@ public:
 		components.reserve(maxComponents);
 	}
 	std::vector<std::pair<Entity, C>> components;
-private:
 //TODO finish interface so logging can be done with components private
 };// ComponentVector
 
-/*!\class ComponentManager
+/*!\class ComponentContainers
  *
  */
-class ComponentManager{
+class ComponentContainers{
 public:
 	/*!\fn add
 	 * places a new void ptr to types map for the passed in component data structure. Name is the key
@@ -161,8 +160,9 @@ public:
 	/*!\fn get
 	 * returns void ptr to component data structure related to the passed in name
 	 */
-	void* get(const std::string& componentName){
-		auto it = std::find_if(pointers.begin(), pointers.end(), CompareFirst<std::string,void*>(componentName));
+	std::shared_ptr< BaseContainer > get(const std::string& componentName){
+		auto it = std::find_if(containers.begin(), containers.end(),
+				CompareFirst<std::string, std::shared_ptr< BaseContainer> >(componentName));
 		return it->second;
 	}
 	/*!\fn getBitMask
@@ -177,7 +177,7 @@ public:
 		return CMask;
 	}
 private:
-	std::vector< std::pair< std::string, void*> > pointers;
+	std::vector< std::pair< std::string, std::shared_ptr< BaseContainer> > > containers;
 	std::unordered_map<std::string, unsigned short int> types;
 	unsigned short int bitCounter = 1;
 
@@ -240,7 +240,7 @@ private:
  */
 class EntityManager{
 public:
-	EntityManager(ComponentManager& cm, SystemManager& sm){
+	EntityManager(ComponentContainers& cm, SystemManager& sm){
 		cm = componentManager;
 		sm = systemManager;
 		entities.reserve(maxEntities);
@@ -330,7 +330,7 @@ private:
 	std::queue<Entity> deletedEntities; //! available indices to use in entities vector
 	std::unordered_map<std::string, std::vector<std::unique_ptr<BaseSystem>>> componentRegistry;
 	Entity entityCount = 0; //! Max number of entity ids used so far
-	ComponentManager componentManager;
+	ComponentContainers componentManager;
 	SystemManager systemManager;
 };
 

@@ -63,7 +63,7 @@ void test_ComponentVector(){
 void test(){
 	//auto stest = new STest();
 	auto stest = std::make_shared<STest>();
-	ecs::ComponentManager cm;
+	ecs::ComponentContainers cm;
 	ecs::SystemManager sm;
 	ecs::EntityManager em(cm, sm);
 	//TODO make a custom component container wrapper
