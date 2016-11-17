@@ -287,7 +287,7 @@ public:
 		return entity;
 	}
 
-	Entity create(std::initializer_list<std::string>& components){
+	Entity create(std::initializer_list<std::string> const& components){
 		Entity e = create();
 		addEntity(e, components);
 		return e;
@@ -295,7 +295,7 @@ public:
 	/*!\fn remove
 	 * \brief sets the "alive" flag for the passed in entity to false.
 	 */
-	void remove(Entity& entity){
+	void remove(Entity const& entity){
 		deletedEntities.push(entity);
 		componentMasks[entity] = 0;
 	}
@@ -324,7 +324,7 @@ private:
 		componentMasks[entity] = CMask;
 	}
 	//! addEntity overload to take multiple components to mask entity with while adding
-	void addEntity(Entity& entity, std::initializer_list<std::string>& components){
+	void addEntity(Entity& entity, std::initializer_list<std::string> const& components){
 		if(deletedEntities.empty()){
 			entity = entityCount;
 			++entityCount;
@@ -355,6 +355,36 @@ private:
 	ComponentContainers componentContainers;
 };
 
+class Engine{
+public:
+
+	Entity createEntity(){
+		return entities.create();
+	}
+
+	Entity createEntity(std::initializer_list<std::string> const& componentNames){
+		return entities.create(componentNames);
+	}
+
+	void destroyEntity(Entity const& entity){
+		entities.remove(entity);
+	}
+	template <class Component>
+	void newComponentType(std::string const& name, Component const& type){
+
+	}
+
+	template <class Component>
+	std::shared_ptr<BaseContainer> getComponents(std::string name){
+
+	}
+
+
+private:
+	Entities entities;
+	ComponentContainers components;
+	Systems systems;
+};
 
 }// ecs namespace
 
