@@ -179,10 +179,11 @@ public:
 	 */
 	template <class Component>
 	void add(const std::string& name, Component& type){
-		for(auto const& it : types){
+		for(auto const& it : bitIndexByName){
 			assert(it.first != name);
 		}
-		types[name] = bitCounter;
+		bitIndexByName[name] = bitCounter;
+		nameByBitIndex[bitCounter] = name;
 		++bitCounter;
 		auto cVecPtr = std::make_shared<ComponentVector<Component>>();
 		pointers[name] = cVecPtr;
@@ -193,26 +194,40 @@ public:
 	std::shared_ptr< BaseContainer > get(const std::string& name){
 		return pointers[name];
 	}
+	/*!\overload get
+	 * returns a map of ptrs to containers
+	 */
+	std::unordered_map<std::string, BaseContainer> get(std::initializer_list<std::string> names){
+		std::unordered_map<std::string, BaseContainer> ptrs;
+		for(auto const& name : names){
+			ptrs[name] = pointers[name];
+		}
+		return ptrs;
+	}
 	/*!\overload getBitMask
 	 * returns a ComponentMask representing the passed in names of types
 	 */
 	ComponentMask getBitMask(std::initializer_list<std::string> names){
 		ComponentMask CMask;
 		for(auto it : names){
-			unsigned short int bit = types[it];
+			unsigned short int bit = bitIndexByName[it];
 			CMask.set(bit , true);
 		}
 		return CMask;
 	}
 
-	std::string getName(ComponentMask cMask){
-		for(auto const& it : types){
-			//TODO
+	std::vector<std::string> getNames(ComponentMask cMask){
+		std::vector<std::string> names;
+		for(int i = 0; i <= maxComponentTypes ; i++){
+			if(cMask[i] == true){
+				names.push_back(nameByBitIndex[i]);
+			}
 		}
 	}
 private:
 	std::unordered_map<std::string, std::shared_ptr< BaseContainer> > pointers;
-	std::unordered_map<std::string, unsigned short int> types;
+	std::unordered_map<std::string, unsigned short int> bitIndexByName;
+	std::unordered_map<unsigned short int, std::string> nameByBitIndex;
 	unsigned short int bitCounter = 1; //bit '0' is alive flag for entities
 };
 
