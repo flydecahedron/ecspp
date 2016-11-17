@@ -121,7 +121,9 @@ public:
 		Component component;
 		components.emplace_back(entity, component);
 	}
-	//! add overload that takes a reference of a component
+	/*!\overload add
+	 * overload that takes a reference of a component
+	 */
 	void add(Entity& entity, Component& component){
 		components.emplace_back(std::make_pair(entity,component));
 	}
@@ -191,7 +193,9 @@ public:
 	std::shared_ptr< BaseContainer > get(const std::string& name){
 		return pointers[name];
 	}
-	//! returns a ComponentMask representing the passed in names of types
+	/*!\overload getBitMask
+	 * returns a ComponentMask representing the passed in names of types
+	 */
 	ComponentMask getBitMask(std::initializer_list<std::string> names){
 		ComponentMask CMask;
 		for(auto it : names){
@@ -199,6 +203,12 @@ public:
 			CMask.set(bit , true);
 		}
 		return CMask;
+	}
+
+	std::string getName(ComponentMask cMask){
+		for(auto const& it : types){
+			//TODO
+		}
 	}
 private:
 	std::unordered_map<std::string, std::shared_ptr< BaseContainer> > pointers;
@@ -299,7 +309,9 @@ public:
 		deletedEntities.push(entity);
 		componentMasks[entity] = 0;
 	}
-	//! overload that takes variable amounts of entities
+	/*!\overload remove
+	 * takes variable amounts of entities
+	 */
 	void remove(std::initializer_list<Entity>& entities){
 		for(Entity e : entities){
 			deletedEntities.push(e);
@@ -323,7 +335,9 @@ private:
 		CMask.set(0, true);//!first bit in CMask is "alive" bit
 		componentMasks[entity] = CMask;
 	}
-	//! addEntity overload to take multiple components to mask entity with while adding
+	/*!\overload addEntity
+	 * overload to take multiple components to mask entity with while adding
+	 */
 	void addEntity(Entity& entity, std::initializer_list<std::string> const& components){
 		if(deletedEntities.empty()){
 			entity = entityCount;
@@ -339,12 +353,14 @@ private:
 		componentMasks[entity] = CMask;
 	}
 	/*!\fn maskEntity
-	 * \brief 'assigns' components to an entity by ORing its component mask with given components
+	 * 'assigns' components to an entity by ORing its component mask with given components
 	 */
 	void maskEntity(Entity& entity, ComponentMask& CMask){
 		componentMasks[entity] | CMask;
 	}
-	//! maskEntity overload to take names of components
+	/*!\overload maskEntity
+	 * overload to take names of components instead
+	 */
 	void maskEntity(Entity& entity, std::initializer_list<std::string>& components){
 		componentMasks[entity] |componentContainers.getBitMask(components);
 	}
@@ -355,6 +371,9 @@ private:
 	ComponentContainers componentContainers;
 };
 
+/*!\class Engine
+ * \brief wrapper for the funtionality of the ecs
+ */
 class Engine{
 public:
 
@@ -368,23 +387,28 @@ public:
 
 	void destroyEntity(Entity const& entity){
 		entities.remove(entity);
+		//TODO remove from component containers
 	}
 	template <class Component>
 	void newComponentType(std::string const& name, Component const& type){
-
+		components.add(name, type);
 	}
 
 	template <class Component>
-	std::shared_ptr<BaseContainer> getComponents(std::string name){
-
+	std::shared_ptr<BaseContainer> getComponents(std::string const& name){
+		return components.get(name);
 	}
 
-
+	template <class System>
+	void addSystem(std::string const& name, System& system){
+		std::shared_ptr<System> ptr = std::make_shared<system>();
+		systems.add(name, ptr);
+	}
 private:
 	Entities entities;
 	ComponentContainers components;
 	Systems systems;
-};
+};// Engine
 
 }// ecs namespace
 
