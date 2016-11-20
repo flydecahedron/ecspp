@@ -366,13 +366,13 @@ public:
 	/*!\fn maskEntity
 	 * 'assigns' components to an entity by ORing its component mask with given components
 	 */
-	void mask(Entity& entity, ComponentMask& CMask){
+	void mask(Entity const& entity, ComponentMask const& CMask){
 		componentMasks[entity] | CMask;
 	}
 	/*!\overload maskEntity
 	 * overload to take names of components instead
 	 */
-	void mask(Entity& entity, std::initializer_list<std::string>& components){
+	void mask(Entity const& entity, std::initializer_list<std::string> const& components){
 		componentMasks[entity] |componentContainers.getBitMask(components);
 	}
 private:
@@ -432,7 +432,19 @@ public:
 
 	void destroyEntity(Entity const& entity){
 		entities.remove(entity);
-		//TODO remove from component containers
+	}
+
+	void destroyEntity(std::initializer_list<Entity> const& entitiesToDestroy){
+		for(Entity entity : entitiesToDestroy){
+			entities.remove(entity);
+		}
+	}
+
+	void addComponent(Entity const& entity, std::initializer_list<std::string> const& componentNames){
+		entities.mask(entity, componentNames);
+		for (std::string name : componentNames){
+			components.get(name)->add(entity);
+		}
 	}
 	template <class Component>
 	void newComponentType(std::string const& name, Component const& type){
