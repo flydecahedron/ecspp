@@ -131,7 +131,7 @@ public:
 	/*!\fn remove
 	 * removes the entity and its component from the vector
 	 */
-	void remove(Entity const& entity){
+	void remove (Entity const& entity){
 		if(!components.empty()){
 			auto it = std::find_if(components.begin(), components.end(),CompareFirst<Entity,Component>(entity));
 			std::swap(components[it - components.begin()], components.back());
@@ -490,7 +490,7 @@ public:
 		components.get(name)->remove(entity);
 	}
 	template <class Component>
-	void newComponentType(std::string const& name, Component const& type){
+	void newComponentType(std::string const& name, Component& type){
 		components.add(name, type);
 	}
 
