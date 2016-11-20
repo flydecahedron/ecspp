@@ -365,15 +365,17 @@ public:
 
 	/*!\fn maskEntity
 	 * 'assigns' components to an entity by ORing its component mask with given components
+	 * (Current + Param) * Param
 	 */
 	void mask(Entity const& entity, ComponentMask const& CMask){
-		componentMasks[entity] | CMask;
+		(componentMasks[entity] | CMask) & CMask;
 	}
 	/*!\overload maskEntity
 	 * overload to take names of components instead
 	 */
 	void mask(Entity const& entity, std::initializer_list<std::string> const& components){
-		componentMasks[entity] |componentContainers.getBitMask(components);
+		ComponentMask cMask = componentContainers.getBitMask(components);
+		(componentMasks[entity] | cMask) & cMask;
 	}
 private:
 	/*!\fn addEntity
