@@ -197,8 +197,8 @@ public:
 	/*!\overload get
 	 * returns a map of ptrs to containers
 	 */
-	std::unordered_map<std::string, BaseContainer> get(std::initializer_list<std::string> names){
-		std::unordered_map<std::string, BaseContainer> ptrs;
+	std::unordered_map<std::string, std::shared_ptr<BaseContainer>> get(std::initializer_list<std::string> names){
+		std::unordered_map<std::string, std::shared_ptr< BaseContainer > > ptrs;
 		for(auto const& name : names){
 			ptrs[name] = pointers[name];
 		}
@@ -223,6 +223,7 @@ public:
 				names.push_back(nameByBitIndex[i]);
 			}
 		}
+		return names;
 	}
 private:
 	std::unordered_map<std::string, std::shared_ptr< BaseContainer> > pointers;
