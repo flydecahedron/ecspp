@@ -334,6 +334,23 @@ public:
 			this->componentMasks[e] = 0;
 		}
 	}
+
+	ComponentMask getComponentMask(Entity entity){
+		return this->componentMasks[entity];
+	}
+
+	/*!\fn maskEntity
+	 * 'assigns' components to an entity by ORing its component mask with given components
+	 */
+	void mask(Entity& entity, ComponentMask& CMask){
+		componentMasks[entity] | CMask;
+	}
+	/*!\overload maskEntity
+	 * overload to take names of components instead
+	 */
+	void mask(Entity& entity, std::initializer_list<std::string>& components){
+		componentMasks[entity] |componentContainers.getBitMask(components);
+	}
 private:
 	/*!\fn addEntity
 	 * \brief adds entity with a default ComponentMask
@@ -368,18 +385,6 @@ private:
 		CMask | componentContainers.getBitMask(components);
 		componentMasks[entity] = CMask;
 	}
-	/*!\fn maskEntity
-	 * 'assigns' components to an entity by ORing its component mask with given components
-	 */
-	void maskEntity(Entity& entity, ComponentMask& CMask){
-		componentMasks[entity] | CMask;
-	}
-	/*!\overload maskEntity
-	 * overload to take names of components instead
-	 */
-	void maskEntity(Entity& entity, std::initializer_list<std::string>& components){
-		componentMasks[entity] |componentContainers.getBitMask(components);
-	}
 
 	std::vector<ComponentMask> componentMasks; //! index = entity id. bit '0' = alive flag
 	std::queue<Entity> deletedEntities; //! available indices to use in componentMasks vector
@@ -402,6 +407,7 @@ public:
 	}
 
 	void destroyEntity(Entity const& entity){
+
 		entities.remove(entity);
 		//TODO remove from component containers
 	}
