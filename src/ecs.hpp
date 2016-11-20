@@ -446,6 +446,10 @@ public:
 			components.get(name)->add(entity);
 		}
 	}
+
+	void removeComponent(Entity const& entity, std::string name){
+		components.get(name)->remove(entity);
+	}
 	template <class Component>
 	void newComponentType(std::string const& name, Component const& type){
 		components.add(name, type);
