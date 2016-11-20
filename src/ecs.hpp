@@ -456,13 +456,13 @@ private:
  */
 class Engine{
 public:
-	Engine(){
-		components();
-		entities(components);
-		systems();
-	}
+	Engine():components(), entities(this->components), systems(){}
 	Entity createEntity(){
 		return entities.create();
+	}
+
+	Entity createEntity(std::string const& componentName){
+		return entities.create(componentName);
 	}
 
 	Entity createEntity(std::initializer_list<std::string> const& componentNames){
@@ -509,8 +509,8 @@ public:
 		systems.update();
 	}
 private:
-	Entities entities;
 	ComponentContainers components;
+	Entities entities;
 	Systems systems;
 };// Engine
 
