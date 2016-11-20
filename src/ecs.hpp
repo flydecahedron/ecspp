@@ -100,8 +100,8 @@ struct CompareSecond
 class BaseContainer{
 public:
 	virtual ~BaseContainer(){};
-	virtual void add(Entity& entity) = 0;
-	virtual void remove(Entity& entity) = 0;
+	virtual void add(Entity const& entity) = 0;
+	virtual void remove(Entity const& entity) = 0;
 	virtual void init(const int& maxComponents) = 0;
 };
 
@@ -117,21 +117,21 @@ public:
 	/*!\fn add
 	 * \brief add passed in entity to vector with default component
 	 */
-	void add(Entity& entity){
+	void add(Entity const& entity){
 		Component component;
 		components.emplace_back(entity, component);
 	}
 	/*!\overload add
 	 * overload that takes a reference of a component
 	 */
-	void add(Entity& entity, Component& component){
+	void add(Entity const& entity, Component& component){
 		components.emplace_back(std::make_pair(entity,component));
 	}
 
 	/*!\fn remove
 	 * removes the entity and its component from the vector
 	 */
-	void remove(Entity& entity){
+	void remove(Entity const& entity){
 		if(!components.empty()){
 			auto it = std::find_if(components.begin(), components.end(),CompareFirst<Entity,Component>(entity));
 			std::swap(components[it - components.begin()], components.back());
@@ -184,15 +184,16 @@ public:
 		}
 		bitIndexByName[name] = bitCounter;
 		nameByBitIndex[bitCounter] = name;
-		++bitCounter;
 		auto cVecPtr = std::make_shared<ComponentVector<Component>>();
-		pointers[name] = cVecPtr;
+		pointersByName[name] = cVecPtr;
+		pointersByBitIndex[bitCounter] = cVecPtr;
+		++bitCounter;
 	}
 	/*!\fn get
 	 * returns void ptr to component data structure related to the passed in name
 	 */
 	std::shared_ptr< BaseContainer > get(const std::string& name){
-		return pointers[name];
+		return pointersByName[name];
 	}
 	/*!\overload get
 	 * returns a map of ptrs to containers
@@ -200,7 +201,7 @@ public:
 	std::unordered_map<std::string, std::shared_ptr<BaseContainer>> get(std::initializer_list<std::string> names){
 		std::unordered_map<std::string, std::shared_ptr< BaseContainer > > ptrs;
 		for(auto const& name : names){
-			ptrs[name] = pointers[name];
+			ptrs[name] = pointersByName[name];
 		}
 		return ptrs;
 	}
@@ -225,8 +226,29 @@ public:
 		}
 		return names;
 	}
+
+	void removeEntity(Entity const& entity, std::initializer_list<std::string> const& names){
+		for(auto const& name : names){
+			pointersByName[name]->remove(entity);
+		}
+	}
+
+	void removeEntity(Entity const& entity, std::vector<std::string> const& names){
+		for(auto const& name : names){
+			pointersByName[name]->remove(entity);
+		}
+	}
+
+	void removeEntity(Entity const& entity, ComponentMask cMask){
+		for(int i = 0; i <= maxComponentTypes ; i++){
+			if(cMask[i] == true){
+				pointersByBitIndex[i]->remove(entity);
+			}
+		}
+	}
 private:
-	std::unordered_map<std::string, std::shared_ptr< BaseContainer> > pointers;
+	std::unordered_map<std::string, std::shared_ptr< BaseContainer> > pointersByName;
+	std::unordered_map<unsigned short int, std::shared_ptr< BaseContainer> > pointersByBitIndex;
 	std::unordered_map<std::string, unsigned short int> bitIndexByName;
 	std::unordered_map<unsigned short int, std::string> nameByBitIndex;
 	unsigned short int bitCounter = 1; //bit '0' is alive flag for entities
@@ -322,6 +344,7 @@ public:
 	 * \brief sets the "alive" flag for the passed in entity to false.
 	 */
 	void remove(Entity const& entity){
+		componentContainers.removeEntity(entity, componentMasks[entity]);
 		deletedEntities.push(entity);
 		componentMasks[entity] = 0;
 	}
@@ -329,9 +352,10 @@ public:
 	 * takes variable amounts of entities
 	 */
 	void remove(std::initializer_list<Entity>& entities){
-		for(Entity e : entities){
-			deletedEntities.push(e);
-			this->componentMasks[e] = 0;
+		for(Entity entity : entities){
+			componentContainers.removeEntity(entity, componentMasks[entity]);
+			deletedEntities.push(entity);
+			this->componentMasks[entity] = 0;
 		}
 	}
 
@@ -407,7 +431,6 @@ public:
 	}
 
 	void destroyEntity(Entity const& entity){
-
 		entities.remove(entity);
 		//TODO remove from component containers
 	}
