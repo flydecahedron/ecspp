@@ -205,6 +205,15 @@ public:
 		}
 		return ptrs;
 	}
+	/*!\fn getBitMask
+	 * returns a ComponentMask representing the passed in names of types
+	 */
+	ComponentMask getBitMask(std::string name){
+		ComponentMask CMask;
+		unsigned short int bit = bitIndexByName[name];
+		CMask.set(bit , true);
+		return CMask;
+	}
 	/*!\overload getBitMask
 	 * returns a ComponentMask representing the passed in names of types
 	 */
@@ -335,6 +344,12 @@ public:
 		return entity;
 	}
 
+	Entity create(std::string component){
+		Entity e = create();
+		addEntity(e, component);
+		return e;
+	}
+
 	Entity create(std::initializer_list<std::string> const& components){
 		Entity e = create();
 		addEntity(e, components);
@@ -412,6 +427,24 @@ private:
 		componentMasks[entity] = CMask;
 	}
 
+	/*!\overload addEntity
+	 * overload to take multiple components to mask entity with while adding
+	 */
+	void addEntity(Entity& entity, std::string const& components){
+		if(deletedEntities.empty()){
+			entity = entityCount;
+			++entityCount;
+		}
+		else{
+			entity = deletedEntities.front();
+			deletedEntities.pop();
+		}
+		ComponentMask CMask;
+		CMask.set(0, true);//!first bit in CMask is "alive" bit
+		CMask | componentContainers.getBitMask(components);
+		componentMasks[entity] = CMask;
+	}
+
 	std::vector<ComponentMask> componentMasks; //! index = entity id. bit '0' = alive flag
 	std::queue<Entity> deletedEntities; //! available indices to use in componentMasks vector
 	Entity entityCount = 0; //! Max number of entity ids used so far
@@ -424,9 +457,9 @@ private:
 class Engine{
 public:
 	Engine(){
-		entities = new Entity();
-		components = new ComponentContainers;
-		systems = new Systems();
+		components();
+		entities(components);
+		systems();
 	}
 	Entity createEntity(){
 		return entities.create();
