@@ -423,7 +423,11 @@ private:
  */
 class Engine{
 public:
-
+	Engine(){
+		entities = new Entity();
+		components = new ComponentContainers;
+		systems = new Systems();
+	}
 	Entity createEntity(){
 		return entities.create();
 	}
@@ -466,6 +470,10 @@ public:
 	void addSystem(std::string const& name, System& system){
 		std::shared_ptr<System> ptr = std::make_shared<system>();
 		systems.add(name, ptr);
+	}
+
+	void update(){
+		systems.update();
 	}
 private:
 	Entities entities;

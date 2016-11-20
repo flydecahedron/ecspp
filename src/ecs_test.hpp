@@ -25,7 +25,12 @@ public:
 	void addEntity(){}
 	std::vector<CTest> testComponents;
 }; //STest
-
+void Engine_test(){
+	ecs::Engine engine;
+	CTest testComp;
+	engine.newComponentType("test", testComp);
+	engine.createEntity("test");
+}
 void ComponentVector_test(){
 	ecs::ComponentVector<CTest>* testVec = new ecs::ComponentVector<CTest>;
 	testVec->init(200); //reserve 200
