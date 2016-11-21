@@ -30,6 +30,9 @@ void Engine_test(){
 	CTest testComp;
 	engine.newComponentType("test", testComp);
 	engine.createEntity("test");
+	STest testSystem;
+	std::shared_ptr<STest> testSystemPtr = std::make_shared<STest>(testSystem);
+	engine.addSystem("test", testSystemPtr);
 }
 void ComponentVector_test(){
 	ecs::ComponentVector<CTest>* testVec = new ecs::ComponentVector<CTest>;

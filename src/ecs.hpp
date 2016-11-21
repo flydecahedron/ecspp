@@ -500,9 +500,8 @@ public:
 	}
 
 	template <class System>
-	void addSystem(std::string const& name, System& system){
-		std::shared_ptr<System> ptr = std::make_shared<system>();
-		systems.add(name, ptr);
+	void addSystem(std::string const& name, std::shared_ptr<System>& systemPtr){
+		systems.add(name, systemPtr);
 	}
 
 	void update(){
