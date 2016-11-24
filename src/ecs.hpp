@@ -392,6 +392,14 @@ public:
 		ComponentMask cMask = componentContainers.getBitMask(components);
 		(componentMasks[entity] | cMask) & cMask;
 	}
+
+	/*!\overload maskEntity
+	 * overload to take names of components instead
+	 */
+	void mask(Entity const& entity, std::string const& component){
+		ComponentMask cMask = componentContainers.getBitMask(component);
+		(componentMasks[entity] | cMask) & cMask;
+	}
 private:
 	/*!\fn addEntity
 	 * \brief adds entity with a default ComponentMask
@@ -479,6 +487,11 @@ public:
 		}
 	}
 
+	void addComponent(Entity const& entity, std::string const& componentName){
+		entities.mask(entity, componentName);
+		components.get(componentName)->add(entity);
+	}
+
 	void addComponent(Entity const& entity, std::initializer_list<std::string> const& componentNames){
 		entities.mask(entity, componentNames);
 		for (std::string name : componentNames){
@@ -494,7 +507,6 @@ public:
 		components.add(name, type);
 	}
 
-	template <class Component>
 	std::shared_ptr<BaseContainer> getComponents(std::string const& name){
 		return components.get(name);
 	}
