@@ -16,7 +16,7 @@ struct CTest{
 
 class STest : public ecs::BaseSystem{
 public:
-	STest(){}
+	STest(ecs::Engine& engine){}
 	~STest(){}
     void update(){}
 	void init(){}
@@ -24,12 +24,16 @@ public:
 	void removeEntity(ecs::Entity& entity){}
 	void addEntity(){}
 	std::vector<CTest> testComponents;
+	ecs::Engine ecs;
 }; //STest
 void Engine_test(){
 	ecs::Engine engine;
 	CTest testComp;
 	engine.newComponentType("test", testComp);
 	engine.createEntity("test");
+	auto testSystem = std::make_shared<STest>(engine);
+	engine.addSystem("test", testSystem);
+
 }
 void ComponentVector_test(){
 	ecs::ComponentVector<CTest>* testVec = new ecs::ComponentVector<CTest>;
