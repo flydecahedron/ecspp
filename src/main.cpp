@@ -8,5 +8,6 @@
 #include "ecs_test.hpp"
 int main() {
 	ComponentVector_test();
+	Engine_test();
 	return 0;
 }

@@ -490,7 +490,7 @@ public:
 		components.get(name)->remove(entity);
 	}
 	template <class Component>
-	void newComponentType(std::string const& name, Component const& type){
+	void newComponentType(std::string const& name, Component& type){
 		components.add(name, type);
 	}
 
