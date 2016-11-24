@@ -1,5 +1,5 @@
 ecspp
-C++ Entity Component System utilizing boost flat_maps and a header only implementation
+C++ Entity Component System utilizing a header only implementation
 
 ECS implementation I'm using with SFML for a game I'm developing. Not done yet and will update
 with usage info when done. Also doxygen documentation should follow shortly. 
